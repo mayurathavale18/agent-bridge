@@ -1,0 +1,21 @@
+{
+  "id": "my-harness",
+  "name": "My Harness",
+  "version": "1.0.0",
+  "kind": "http",
+  "url": "http://localhost:8787",
+  "capabilities": {
+    "streaming": true,
+    "resume": false,
+    "approvals": false,
+    "nativeMcp": false,
+    "reportsCost": false
+  },
+  "config": {
+    "type": "object",
+    "properties": {
+      "model": { "type": "string", "title": "Model" },
+      "temperature": { "type": "number", "default": 0.2, "title": "Temperature" }
+    }
+  }
+}

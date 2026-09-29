@@ -1,0 +1,3 @@
+# Normalize to LF in the repository: Node tooling and CI expect LF, and CRLF churn
+# makes cross-platform diffs unreadable.
+* text=auto eol=lf

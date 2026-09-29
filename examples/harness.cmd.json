@@ -1,0 +1,30 @@
+{
+  "id": "cmd",
+  "name": "Command Code",
+  "version": "1.0.0",
+  "kind": "native",
+  "entry": "../src/harnesses/cmd.ts",
+  "capabilities": {
+    "streaming": true,
+    "resume": true,
+    "approvals": false,
+    "nativeMcp": true,
+    "reportsCost": true
+  },
+  "config": {
+    "type": "object",
+    "properties": {
+      "binary": { "type": "string", "default": "cmdc", "title": "Executable" },
+      "model": { "type": "string", "title": "Model", "description": "Model id, or a BYOK id." },
+      "effort": { "type": "string", "enum": ["low", "medium", "high"], "title": "Reasoning effort" },
+      "maxTurns": { "type": "number", "default": 100, "title": "Max turns" },
+      "permissionMode": {
+        "type": "string",
+        "enum": ["standard", "plan", "accept-edits", "yolo"],
+        "default": "standard",
+        "title": "Permission mode"
+      }
+    }
+  },
+  "metadata": { "docs": "https://commandcode.ai/docs" }
+}

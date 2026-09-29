@@ -1,0 +1,22 @@
+{
+  "name": "agent-bridge",
+  "version": "0.0.1",
+  "private": true,
+  "description": "One event contract, many agent harnesses, many chat channels.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.6"
+  },
+  "scripts": {
+    "dev": "node src/index.ts",
+    "serve": "node src/serve.ts",
+    "list": "node src/index.ts --list",
+    "demo": "node src/index.ts --harness mock \"hello from the bridge\"",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test src/core/events.test.ts src/core/manifest.test.ts src/core/async-queue.test.ts src/core/session-store.test.ts src/core/config-store.test.ts src/core/config-schema.test.ts src/harnesses/cmd.test.ts src/harnesses/cmd-hook.test.ts src/dashboard/server.test.ts src/channels/whatsapp/signature.test.ts src/channels/whatsapp/trigger.test.ts src/channels/whatsapp/renderer.test.ts src/channels/whatsapp/approval.test.ts src/channels/whatsapp/commands.test.ts src/channels/whatsapp/channel.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "typescript": "^7.0.0"
+  }
+}
