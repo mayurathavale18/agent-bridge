@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// Node >= 22.6 runs this TypeScript directly (type stripping), so the npm `bin` shim works
+// without a build step.
 import { resolve } from 'node:path';
 import { ConfigStore } from './core/config-store.ts';
 import { SessionStore } from './core/session-store.ts';

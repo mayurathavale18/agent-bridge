@@ -26,6 +26,9 @@ All notable changes to this project are documented here. The format follows
 - **Config dashboard** (`src/dashboard/`): schema-driven config UI over the harness catalog,
   with environment-pin badges and restart-pending signalling.
 - 99 tests (unit + integration), zero runtime dependencies, no build step.
+- **npm package** (`@mayurathavale18/agent-bridge`) with `agent-bridge` and
+  `agent-bridge-serve` bins, shipping a compiled `dist/` (Node refuses type-stripping under
+  `node_modules`, so the package cannot ship TypeScript).
 
 ### Security
 

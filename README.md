@@ -44,27 +44,21 @@ the contract is the part worth getting right first.
 | Per-chat queue (single-flight) | done |
 | Session routing (resume across messages) | done — persists across restarts |
 
-## Run it
+## Install
 
-Requires Node >= 22.6 (type stripping — no build step).
+From npm (ships a compiled `dist/`, so any Node ≥ 22.6 works):
+
+```bash
+npm install -g @mayurathavale18/agent-bridge
+agent-bridge --list
+agent-bridge-serve          # the WhatsApp channel server
+```
+
+Or straight from source — no build step, Node ≥ 22.6 strips the types:
 
 ```bash
 npm install          # only for typecheck; running needs no deps
-
-npm run list         # show harnesses and their capabilities
-npm run demo         # run the mock harness (no model, no cost)
-
-# a real harness
-node src/index.ts --harness cmd --workspace . --model claude-sonnet-5 "summarize this repo"
-
-# any HTTP harness
-node src/index.ts --harness http --url http://localhost:8787 "do the thing"
-
-# load a plugin from a manifest
-node src/index.ts --manifest examples/harness.cmd.json "say hi"
-
-npm run typecheck
-npm test
+node src/index.ts --list
 ```
 
 `cmd` runs in headless mode, which **blocks file writes and shell commands by default**.
@@ -82,6 +76,25 @@ node src/index.ts --harness cmd \
 
 The adapter runs any `.js`/`.mjs`/`.cjs` config value through the current Node, so this works
 identically on every platform.
+
+## Run it from source
+
+```bash
+npm run list         # show harnesses and their capabilities
+npm run demo         # run the mock harness (no model, no cost)
+
+# a real harness
+node src/index.ts --harness cmd --workspace . --model claude-sonnet-5 "summarize this repo"
+
+# any HTTP harness
+node src/index.ts --harness http --url http://localhost:8787 "do the thing"
+
+# load a plugin from a manifest
+node src/index.ts --manifest examples/harness.cmd.json "say hi"
+
+npm run typecheck
+npm test
+```
 
 ## Drive it from WhatsApp
 

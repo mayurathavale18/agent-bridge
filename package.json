@@ -1,11 +1,49 @@
 {
-  "name": "agent-bridge",
-  "version": "0.0.1",
-  "private": true,
-  "description": "One event contract, many agent harnesses, many chat channels.",
+  "name": "@mayurathavale18/agent-bridge",
+  "version": "0.1.0",
+  "description": "One event contract, many agent harnesses, many chat channels. Drive Command Code, Claude Code, Codex, Pi or your own agent from WhatsApp.",
   "type": "module",
+  "license": "MIT",
+  "author": "Mayur Athavale <mayurathavale.code100@protonmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mayurathavale18/agent-bridge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mayurathavale18/agent-bridge/issues"
+  },
+  "keywords": [
+    "agent",
+    "ai-agent",
+    "whatsapp",
+    "openwa",
+    "claude-code",
+    "codex",
+    "command-code",
+    "hermes",
+    "harness",
+    "mcp-adjacent",
+    "chat-bot",
+    "llm-tools"
+  ],
   "engines": {
     "node": ">=22.6"
+  },
+  "bin": {
+    "agent-bridge": "dist/index.js",
+    "agent-bridge-serve": "dist/serve.js"
+  },
+  "files": [
+    "dist/",
+    "docs/harness-spec.md",
+    "docs/hermes-integration.md",
+    "examples/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "dev": "node src/index.ts",
@@ -13,7 +51,9 @@
     "list": "node src/index.ts --list",
     "demo": "node src/index.ts --harness mock \"hello from the bridge\"",
     "typecheck": "tsc --noEmit",
-    "test": "node --test src/core/events.test.ts src/core/manifest.test.ts src/core/async-queue.test.ts src/core/session-store.test.ts src/core/config-store.test.ts src/core/config-schema.test.ts src/harnesses/cmd.test.ts src/harnesses/cmd-hook.test.ts src/dashboard/server.test.ts src/channels/whatsapp/signature.test.ts src/channels/whatsapp/trigger.test.ts src/channels/whatsapp/renderer.test.ts src/channels/whatsapp/approval.test.ts src/channels/whatsapp/commands.test.ts src/channels/whatsapp/channel.test.ts"
+    "build": "tsc -p tsconfig.build.json",
+    "test": "node --test src/core/events.test.ts src/core/manifest.test.ts src/core/async-queue.test.ts src/core/session-store.test.ts src/core/config-store.test.ts src/core/config-schema.test.ts src/harnesses/cmd.test.ts src/harnesses/cmd-hook.test.ts src/dashboard/server.test.ts src/channels/whatsapp/signature.test.ts src/channels/whatsapp/trigger.test.ts src/channels/whatsapp/renderer.test.ts src/channels/whatsapp/approval.test.ts src/channels/whatsapp/commands.test.ts src/channels/whatsapp/channel.test.ts",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
   },
   "devDependencies": {
     "@types/node": "^26.0.0",
