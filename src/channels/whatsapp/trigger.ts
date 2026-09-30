@@ -25,7 +25,7 @@ function sameJid(a: string, b: string): boolean {
 }
 
 /** The account's own identities: WhatsApp addresses the self-chat with BOTH the phone JID and the LID. */
-export function selfIdSet(selfIds: string | string[] | undefined): string[] {
+export function selfIdSet(selfIds: string | readonly string[] | undefined): string[] {
   if (!selfIds) return [];
   const list = typeof selfIds === 'string' ? selfIds.split(',') : selfIds;
   return list.map(s => s.trim()).filter(Boolean);
