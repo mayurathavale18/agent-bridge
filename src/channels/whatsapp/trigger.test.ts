@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { EchoGuard, extractTrigger, isSelfChat } from './trigger.ts';
+import { EchoGuard, extractTrigger, isSelfChat, selfIdSet } from './trigger.ts';
 import type { OpenWaMessage } from './types.ts';
 
 const SELF = '917972833243@c.us';
@@ -26,6 +26,19 @@ test('a self-chat is fromMe, not a group, and from === to', () => {
   assert.equal(isSelfChat(message({ fromMe: false })), false);
   assert.equal(isSelfChat(message({ isGroup: true })), false);
   assert.equal(isSelfChat(message({ to: 'other@c.us' })), false);
+});
+
+test('a phone-originated self-chat (phone JID from, LID to) passes with configured self-ids', () => {
+  const msg = message({ from: SELF, to: '157076097654949@lid', chatId: '157076097654949@lid', body: '@me do the thing', mentionedIds: [SELF] });
+  const ids = selfIdSet('917972833243@c.us,157076097654949@lid');
+  assert.equal(isSelfChat(msg, ids), true);
+  assert.equal(extractTrigger(msg, { selfJid: ids })?.prompt, 'do the thing');
+});
+
+test('selfIdSet splits a comma-separated env string into ids', () => {
+  assert.deepEqual(selfIdSet('917972833243@c.us, 157076097654949@lid'), ['917972833243@c.us', '157076097654949@lid']);
+  assert.deepEqual(selfIdSet(['a@c.us', 'b@lid']), ['a@c.us', 'b@lid']);
+  assert.deepEqual(selfIdSet(undefined), []);
 });
 
 test('a mentioned self-chat message becomes a trigger with the mention stripped', () => {

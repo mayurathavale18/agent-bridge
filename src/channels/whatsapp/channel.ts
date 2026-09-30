@@ -5,7 +5,7 @@ import { APPROVAL_HINT, parseApprovalAnswer, type ApprovalDecision, type Pending
 import { COMMAND_HELP, parseChatCommand, type ChatCommand } from './commands.ts';
 import { chunkText, formatProgress, WHATSAPP_TEXT_LIMIT } from './renderer.ts';
 import { verifySignature } from './signature.ts';
-import { EchoGuard, extractTrigger, isSelfChat } from './trigger.ts';
+import { EchoGuard, extractTrigger, isSelfChat, selfIdSet } from './trigger.ts';
 import type { MessagingClient, OpenWaWebhookEnvelope } from './types.ts';
 
 export interface WhatsAppChannelOptions {
@@ -84,7 +84,7 @@ export class WhatsAppChannel {
     // Checked BEFORE trigger extraction so a plain "yes"/"no" needs no mention.
     const pending = this.#approvals.get(message.chatId);
     if (pending) {
-      if (!isSelfChat(message) || this.#echo.isEcho(message.id)) return;
+      if (!isSelfChat(message, selfIdSet(this.#selfJid)) || this.#echo.isEcho(message.id)) return;
 
       const answer = parseApprovalAnswer(message.body);
       if (!answer) {
