@@ -1,0 +1,62 @@
+# OpenWA on k3s — the WhatsApp gateway, fronting the session migrated from the Windows box.
+#
+# Single-node k3s: the session data uses a hostPath (/srv/agent-stack/openwa) rather than a
+# PVC so the WhatsApp session can be migrated with a plain scp + untar. On a multi-node
+# cluster, swap it for a PVC with ReadWriteOnce on the pinned node.
+#
+# The webhook URL for this session points at the agent-bridge service:
+#   http://agent-bridge.agent-stack.svc:8788/webhook
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openwa
+  namespace: agent-stack
+  labels: { app: openwa }
+spec:
+  replicas: 1
+  strategy: { type: Recreate }   # one WhatsApp session must not run twice during a rolling update
+  selector:
+    matchLabels: { app: openwa }
+  template:
+    metadata:
+      labels: { app: openwa }
+    spec:
+      containers:
+        - name: openwa
+          image: openwa:0.23.7
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 2785
+          env:
+            - { name: PORT, value: "2785" }
+            - { name: DATABASE_TYPE, value: "sqlite" }
+            - { name: AUTO_START_SESSIONS, value: "true" }
+            - { name: SESSION_DATA_PATH, value: "/app/data/sessions" }
+            - { name: STORAGE_LOCAL_PATH, value: "/app/data/media" }
+            - { name: PLUGINS_DIR, value: "/app/data/plugins" }
+            - { name: PUPPETEER_EXECUTABLE_PATH, value: "/usr/local/bin/puppeteer-chrome" }
+            - { name: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD, value: "true" }
+          securityContext:
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - { name: data, mountPath: "/app/data" }
+          readinessProbe:
+            httpGet: { path: "/api/health/ready", port: 2785 }
+            periodSeconds: 15
+      volumes:
+        - name: data
+          hostPath: { path: "/srv/agent-stack/openwa", type: DirectoryOrCreate }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openwa
+  namespace: agent-stack
+spec:
+  selector: { app: openwa }
+  ports:
+    - name: http
+      port: 2785
+      targetPort: 2785
