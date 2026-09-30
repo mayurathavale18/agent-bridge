@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="330" viewBox="0 0 960 330" role="img">
+<title>WhatsApp self-chat → command execution</title>
+<style>text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;fill:#24292f;font-size:15px}.title{font-size:22px;font-weight:600}.label{font-size:17px;font-weight:600}.note{fill:#57606a;font-size:13px}</style>
+<rect width="960" height="330" rx="8" fill="#fff"/>
+<text x="28" y="40" class="title">WhatsApp self-chat → command execution</text>
+<rect x="28.0" y="65" width="285.3333333333333" height="195" rx="6" fill="#f6f8fa" stroke="#d0d7de"/>
+<text x="46.0" y="97" class="label">Self-chat</text>
+<text x="46.0" y="132">@me run the tests</text>
+<text x="46.0" y="157">acknowledgement: 👾</text>
+<text x="46.0" y="182">reply names the harness</text>
+<text x="316.3333333333333" y="165" fill="#0969da">→</text>
+<rect x="337.3333333333333" y="65" width="285.3333333333333" height="195" rx="6" fill="#f6f8fa" stroke="#d0d7de"/>
+<text x="355.3333333333333" y="97" class="label">OpenWA + bridge</text>
+<text x="355.3333333333333" y="132">received / sent events</text>
+<text x="355.3333333333333" y="157">verify signature</text>
+<text x="355.3333333333333" y="182">filter + deduplicate</text>
+<text x="625.6666666666666" y="165" fill="#0969da">→</text>
+<rect x="646.6666666666666" y="65" width="285.3333333333333" height="195" rx="6" fill="#f6f8fa" stroke="#d0d7de"/>
+<text x="664.6666666666666" y="97" class="label">Command Code</text>
+<text x="664.6666666666666" y="132">cmdc runs in workspace</text>
+<text x="664.6666666666666" y="157">tool approval → chat</text>
+<text x="664.6666666666666" y="182">yes / no / cancel</text>
+<text x="28" y="295" class="note">Example flow • cmd approval gate must be enabled • agent responses return to the same chat</text>
+</svg>

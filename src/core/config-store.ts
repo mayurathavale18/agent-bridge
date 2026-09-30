@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, rename } from 'node:fs/promises';
 
 export interface StoredConfig {
   activeHarness?: string;
@@ -23,6 +23,7 @@ export class ConfigStore {
   #log: (message: string) => void;
   #data: StoredConfig = { harnesses: {} };
   #loaded = false;
+  #saving: Promise<void> = Promise.resolve();
 
   constructor(opts: ConfigStoreOptions = {}) {
     this.#file = opts.file;
@@ -69,12 +70,18 @@ export class ConfigStore {
     return { activeHarness: this.#data.activeHarness, harnesses: { ...this.#data.harnesses } };
   }
 
-  async save(): Promise<void> {
-    if (!this.#file) return;
-    try {
-      await writeFile(this.#file, `${JSON.stringify(this.#data, null, 2)}\n`, 'utf8');
-    } catch (err) {
-      this.#log(`could not persist config: ${err instanceof Error ? err.message : String(err)}`);
-    }
+  save(): Promise<void> {
+    const file = this.#file;
+    if (!file) return Promise.resolve();
+    const body = `${JSON.stringify(this.#data, null, 2)}\n`;
+    this.#saving = this.#saving.then(async () => {
+      try {
+        await writeFile(`${file}.tmp`, body, 'utf8');
+        await rename(`${file}.tmp`, file);
+      } catch (err) {
+        this.#log(`could not persist config: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    });
+    return this.#saving;
   }
 }

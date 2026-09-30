@@ -12,6 +12,11 @@ Hermes, or your own) from any chat medium — starting with WhatsApp. The bridge
 implement an agent loop; it normalizes whatever a harness emits into one event language and
 lets channels render it.
 
+![Technical WhatsApp self-chat workflow: prompt your agent, approve a command, and receive a labelled reply](docs/assets/whatsapp-workflow.svg)
+
+*Technical cmd workflow. Accepted prompts receive a 👾 reaction; agent replies name the harness.
+Chat approvals require the approval gate to be enabled.*
+
 ```
 WhatsApp ──► OpenWA ──webhook──►  ┌──────────────────────────────┐        ┌─ cmd
                                   │           BRIDGE             │        ├─ claude
@@ -47,10 +52,9 @@ is built to deploy onto my own cluster, next to my own data, with no relay in th
 
 ## Status
 
-This is the **contract skeleton**. It compiles, it runs, and the `cmd` adapter drives a real
-Command Code headless run end to end. The WhatsApp channel, the config dashboard, the queue
-and the approval transport are designed in the spec but not yet implemented — deliberately:
-the contract is the part worth getting right first.
+The `cmd` adapter, WhatsApp channel, config dashboard, queue, session routing and chat approval
+transport are implemented. The Contabo k3s deployment has been verified with live model replies
+and a shell request that paused for approval and respected a denial.
 
 | Piece | State |
 | --- | --- |
@@ -66,6 +70,20 @@ the contract is the part worth getting right first.
 | Approval transport over chat | done |
 | Per-chat queue (single-flight) | done |
 | Session routing (resume across messages) | done — persists across restarts |
+
+## One chat, different harnesses and models
+
+![Technical switch from Hermes to Command Code while retaining the same WhatsApp self-chat and OpenWA session](docs/assets/harness-switching.svg)
+
+Switching Hermes ↔ Command Code changes the active OpenWA webhook on the server. Only one
+receives new messages; each harness retains its own history. Use the [Contabo selector commands](docs/contabo.md) for this deployment.
+
+![Technical Hermes model selection using @me /model in WhatsApp self-chat](docs/assets/model-switching.svg)
+
+With Hermes selected, send `@me /model` to see available models, then
+`@me /model <model-id>` with an actual provider model ID. Availability and cost depend on your provider. For the cmd bridge, change its model in the
+dashboard or `AGENT_BRIDGE_CMD__MODEL`, then restart. Harness switching is server-side;
+there is no `/harness` chat command.
 
 ## Install
 
@@ -121,13 +139,13 @@ npm test
 
 ## Drive it from WhatsApp
 
-Start the channel, then point an OpenWA webhook at it (`message.received` only):
+Start the channel, then point an OpenWA webhook at it (`message.received` and `message.sent`):
 
 ```bash
 OPENWA_API_KEY=owa_k1_... \
 OPENWA_WEBHOOK_SECRET=... \
 AGENT_BRIDGE_HARNESS=cmd \
-AGENT_BRIDGE_MODEL=gpt-6-luna \
+AGENT_BRIDGE_CMD__MODEL=gpt-6-luna \
 npm run serve
 ```
 
@@ -159,7 +177,7 @@ Four things keep this safe, all enforced in `src/channels/whatsapp/`:
 
 1. **Signature** — every webhook must carry a valid `X-OpenWA-Signature` (HMAC-SHA256 over the raw body).
 2. **Idempotency** — OpenWA retries; the `idempotencyKey` is deduped so a retry cannot run twice.
-3. **Self-chat only** — `fromMe && from === to && !isGroup`. A message from anyone else is ignored outright.
+3. **Self-chat only** — sent by you, not a group, with both endpoints matching your configured self identities. Phone JIDs and LIDs can differ; configure both in `OPENWA_SELF_JID`.
 4. **Mention-gated + echo guard** — a run needs a real self-mention (or `@me`); replies the bridge posts carry neither, so it can never trigger itself.
 
 ### Approvals from the chat
@@ -216,6 +234,10 @@ The session id is announced once, when it begins — after that, continuity is s
 whose `capabilities().resume` is false is never handed a session id; every message is a fresh run.
 
 ## The config dashboard
+
+![Deployed bridge dashboard with environment-pinned settings](docs/assets/dashboard.png)
+
+For the Contabo deployment, see [dashboard tunnel access](docs/contabo.md#dashboard-access).
 
 The bridge also serves a schema-driven config UI (default `http://127.0.0.1:8789`):
 

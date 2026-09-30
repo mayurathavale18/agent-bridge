@@ -73,9 +73,11 @@ export class WhatsAppChannel {
 
   /** Process one (already verified) envelope. Public so tests can drive it without HTTP. */
   async handle(envelope: OpenWaWebhookEnvelope): Promise<void> {
-    if (envelope.event !== 'message.received') return;
+    if (envelope.event !== 'message.received' && envelope.event !== 'message.sent') return;
 
-    if (envelope.idempotencyKey && this.#isDuplicate(envelope.idempotencyKey)) return;
+    const duplicateKey = envelope.data.id
+      ? `${envelope.sessionId}:${envelope.data.id}` : envelope.idempotencyKey;
+    if (duplicateKey && this.#isDuplicate(duplicateKey)) return;
 
     const message = envelope.data;
     const sessionId = this.#sessionOverride ?? envelope.sessionId;
@@ -101,6 +103,9 @@ export class WhatsAppChannel {
     const trigger = extractTrigger(message, { selfJid: this.#selfJid });
     if (!trigger) return;
     if (this.#echo.isEcho(trigger.messageId)) return;
+
+    await this.#client.react?.(sessionId, trigger.chatId, trigger.messageId, '👾')
+      .catch(err => this.#log(`reaction failed: ${errText(err)}`));
 
     // Chat control words are queued like a run, so `new` cannot overtake an in-flight turn.
     const command = parseChatCommand(trigger.prompt);
@@ -187,10 +192,29 @@ export class WhatsAppChannel {
   }
 
   async #run(sessionId: string, chatId: string, prompt: string): Promise<void> {
+    const presence = async (state: 'typing' | 'paused'): Promise<void> => {
+      await this.#client.sendChatState?.(sessionId, chatId, state)
+        .catch(err => this.#log(`presence failed: ${errText(err)}`));
+    };
+    await presence('typing');
+    const timer = setInterval(() => { void presence('typing'); }, 3000);
+    try {
+      await this.#runTurn(sessionId, chatId, prompt);
+    } finally {
+      clearInterval(timer);
+      await presence('paused');
+    }
+  }
+
+  #label(text: string): string {
+    return `👾 *Agent · ${this.#runner.id}*\n\n${text}`;
+  }
+
+  async #runTurn(sessionId: string, chatId: string, prompt: string): Promise<void> {
     const client = this.#client;
     let placeholderId: string;
     try {
-      const placeholder = await client.sendText(sessionId, chatId, 'working...');
+      const placeholder = await client.sendText(sessionId, chatId, this.#label('working...'));
       placeholderId = placeholder.messageId;
       this.#echo.remember(placeholderId);
     } catch (err) {
@@ -209,7 +233,9 @@ export class WhatsAppChannel {
       if (!force && now - lastEdit < this.#throttleMs) return;
       lastEdit = now;
       const safe = body.trim() || '(no output)';
-      const chunks = chunkText(safe.slice(0, this.#maxChars * 20), this.#maxChars);
+      const headerLength = this.#label('').length;
+      const chunks = chunkText(safe.slice(0, this.#maxChars * 20), Math.max(1, this.#maxChars - headerLength))
+        .map(chunk => this.#label(chunk));
       try {
         await client.editText(sessionId, chatId, placeholderId, chunks[0] ?? safe);
         for (const extra of chunks.slice(1)) {
@@ -269,7 +295,7 @@ export class WhatsAppChannel {
         }
 
         if (event.type === 'done') {
-          finalText = event.text || streamed;
+          finalText = event.text || streamed || (event.exitCode !== 0 ? latest : '(no output)');
           if (event.sessionId) reportedSession = event.sessionId;
         }
       }
@@ -318,7 +344,7 @@ export class WhatsAppChannel {
 
   async #notice(sessionId: string, chatId: string, text: string): Promise<void> {
     try {
-      const sent = await this.#client.sendText(sessionId, chatId, text);
+      const sent = await this.#client.sendText(sessionId, chatId, this.#label(text));
       this.#echo.remember(sent.messageId);
     } catch (err) {
       this.#log(`could not send notice to ${chatId}: ${errText(err)}`);

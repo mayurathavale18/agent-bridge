@@ -1,0 +1,23 @@
+# kubectl -n agent-stack patch deployment agent-bridge --patch-file cmdc-patch.yaml
+# Build/import the image first; provision /srv/agent-stack/bridge-data/.commandcode/auth.json
+# from `cmdc login` and make bridge-data writable by uid 1000. Never commit the auth file.
+spec:
+  template:
+    spec:
+      containers:
+        - name: serve
+          image: agent-bridge:cmdc-20260930
+          env:
+            - { name: HOME, value: /data }
+            - { name: AGENT_BRIDGE_HARNESS, value: cmd }
+            - { name: AGENT_BRIDGE_WORKSPACE, value: /data/workspace }
+            - { name: AGENT_BRIDGE_CONFIG_FILE, value: /data/bridge-config.json }
+            - { name: AGENT_BRIDGE_SESSION_FILE, value: /data/bridge-sessions.json }
+            - { name: AGENT_BRIDGE_CMD__MODEL, value: moonshotai/Kimi-K3 }
+            - { name: AGENT_BRIDGE_CMD__APPROVALS, value: "true" }
+            - { name: AGENT_BRIDGE_CMD__PERMISSION_MODE, value: yolo }
+          volumeMounts:
+            - { name: bridge-data, mountPath: /data }
+      volumes:
+        - name: bridge-data
+          hostPath: { path: /srv/agent-stack/bridge-data, type: DirectoryOrCreate }

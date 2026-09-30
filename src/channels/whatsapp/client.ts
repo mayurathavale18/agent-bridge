@@ -8,8 +8,7 @@ export interface OpenWaClientOptions {
 }
 
 /**
- * Thin client for the two OpenWA routes the bridge needs. Both are documented in the
- * gateway's own API (POST /sessions/{sessionId}/messages/send-text and …/edit).
+ * Thin client for OpenWA messages, reactions and presence.
  */
 export class OpenWaClient implements MessagingClient {
   #base: string;
@@ -42,6 +41,14 @@ export class OpenWaClient implements MessagingClient {
       messageId,
       body,
     });
+  }
+
+  async react(sessionId: string, chatId: string, messageId: string, emoji: string): Promise<unknown> {
+    return this.#post(`/api/sessions/${encodeURIComponent(sessionId)}/messages/react`, { chatId, messageId, emoji });
+  }
+
+  async sendChatState(sessionId: string, chatId: string, state: 'typing' | 'paused'): Promise<unknown> {
+    return this.#post(`/api/sessions/${encodeURIComponent(sessionId)}/chats/typing`, { chatId, state });
   }
 
   async #post<T>(path: string, body: unknown): Promise<T> {

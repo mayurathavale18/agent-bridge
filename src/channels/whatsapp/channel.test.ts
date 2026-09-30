@@ -65,9 +65,42 @@ test('a self-chat mention runs the harness and streams progress into one message
   await channel.handle(envelope('m1', `@${selfNumber} hello`));
   await channel.idle();
 
-  assert.equal(client.calls[0], 'sendText:working...');
+  assert.equal(client.calls[0], 'sendText:👾 *Agent · mock*\n\nworking...');
   assert.ok(client.calls.some(call => call.startsWith('editText:sent-1:')), 'the placeholder is edited');
   assert.ok(client.calls.some(call => call.includes('echo: hello')), 'the harness answer lands in the chat');
+});
+
+test('acknowledges only accepted triggers and clears typing even when delivery fails', async () => {
+  const client = new FakeClient();
+  const activity: string[] = [];
+  Object.assign(client, {
+    react: async (_s: string, _c: string, id: string, emoji: string) => { activity.push(`react:${id}:${emoji}`); },
+    sendChatState: async (_s: string, _c: string, state: string) => { activity.push(state); },
+  });
+  const channel = channelWith(client);
+  await channel.handle(envelope('note', 'my note', false));
+  await channel.handle(envelope('trigger', '@me hello', false));
+  await channel.idle();
+  await channel.handle(envelope('trigger', '@me hello', false));
+  assert.deepEqual(activity, ['react:trigger:👾', 'typing', 'paused']);
+  assert.ok(client.calls.filter(call => call.startsWith('sendText:') || call.startsWith('editText:'))
+    .every(call => call.includes('*Agent · mock*')));
+  client.sendText = async () => { throw new Error('offline'); };
+  await channel.handle(envelope('failure', '@me hello', false));
+  await channel.idle();
+  assert.deepEqual(activity.slice(-3), ['react:failure:👾', 'typing', 'paused']);
+});
+
+test('cosmetic API failures do not prevent an agent reply', async () => {
+  const client = new FakeClient();
+  Object.assign(client, {
+    react: async () => { throw new Error('reaction unavailable'); },
+    sendChatState: async () => { throw new Error('presence unavailable'); },
+  });
+  const channel = channelWith(client);
+  await channel.handle(envelope('trigger', '@me hello', false));
+  await channel.idle();
+  assert.ok(client.calls.some(call => call.includes('echo: hello')));
 });
 
 test('a message without a mention or @me is ignored', async () => {
@@ -93,6 +126,19 @@ test('the same idempotency key is only acted on once', async () => {
   await channel.idle();
 
   assert.equal(client.calls.length, afterFirst);
+});
+
+test('API-originated self-chat triggers run once across sent and received events', async () => {
+  const client = new FakeClient();
+  const channel = channelWith(client);
+  const sent = { ...envelope('api-message', '@me hello', false), event: 'message.sent' };
+  await channel.handle(sent);
+  await channel.idle();
+  const count = client.calls.length;
+  await channel.handle({ ...sent, event: 'message.received', idempotencyKey: 'different-event-key' });
+  await channel.idle();
+  assert.ok(client.calls.some(call => call.includes('echo: hello')));
+  assert.equal(client.calls.length, count);
 });
 
 test('an echo of a message the bridge sent can never start a run', async () => {

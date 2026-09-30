@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="330" viewBox="0 0 960 330" role="img">
+<title>Harness routing: one active webhook</title>
+<style>text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;fill:#24292f;font-size:15px}.title{font-size:22px;font-weight:600}.label{font-size:17px;font-weight:600}.note{fill:#57606a;font-size:13px}</style>
+<rect width="960" height="330" rx="8" fill="#fff"/>
+<text x="28" y="40" class="title">Harness routing: one active webhook</text>
+<rect x="28.0" y="65" width="285.3333333333333" height="195" rx="6" fill="#f6f8fa" stroke="#d0d7de"/>
+<text x="46.0" y="97" class="label">Shared transport</text>
+<text x="46.0" y="132">WhatsApp self-chat</text>
+<text x="46.0" y="157">one OpenWA session</text>
+<text x="46.0" y="182">server selects webhook</text>
+
+<rect x="337.3333333333333" y="65" width="285.3333333333333" height="195" rx="6" fill="#f6f8fa" stroke="#d0d7de"/>
+<text x="355.3333333333333" y="97" class="label">cmd route (active)</text>
+<text x="355.3333333333333" y="132">agent-bridge → cmdc</text>
+<text x="355.3333333333333" y="157">own session history</text>
+<text x="355.3333333333333" y="182">select-harness.py cmd</text>
+
+<rect x="646.6666666666666" y="65" width="285.3333333333333" height="195" rx="6" fill="#f6f8fa" stroke="#d0d7de"/>
+<text x="664.6666666666666" y="97" class="label">Hermes route</text>
+<text x="664.6666666666666" y="132">hermes-openwa → Hermes</text>
+<text x="664.6666666666666" y="157">own session history</text>
+<text x="664.6666666666666" y="182">select-harness.py hermes</text>
+<text x="28" y="295" class="note">Run the selector on the server • switching routes new messages • existing harness histories stay separate</text>
+</svg>

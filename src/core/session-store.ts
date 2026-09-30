@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, rename } from 'node:fs/promises';
 
 export interface SessionRecord {
   /** The harness's own session id, the handle used to resume. */
@@ -27,6 +27,7 @@ export class SessionStore {
   #file: string | undefined;
   #log: (message: string) => void;
   #loaded = false;
+  #saving: Promise<void> = Promise.resolve();
 
   constructor(opts: SessionStoreOptions = {}) {
     this.#file = opts.file;
@@ -75,12 +76,18 @@ export class SessionStore {
     return this.#byChat.size;
   }
 
-  async save(): Promise<void> {
-    if (!this.#file) return;
-    try {
-      await writeFile(this.#file, `${JSON.stringify(Object.fromEntries(this.#byChat), null, 2)}\n`, 'utf8');
-    } catch (err) {
-      this.#log(`could not persist sessions: ${err instanceof Error ? err.message : String(err)}`);
-    }
+  save(): Promise<void> {
+    const file = this.#file;
+    if (!file) return Promise.resolve();
+    const body = `${JSON.stringify(Object.fromEntries(this.#byChat), null, 2)}\n`;
+    this.#saving = this.#saving.then(async () => {
+      try {
+        await writeFile(`${file}.tmp`, body, 'utf8');
+        await rename(`${file}.tmp`, file);
+      } catch (err) {
+        this.#log(`could not persist sessions: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    });
+    return this.#saving;
   }
 }

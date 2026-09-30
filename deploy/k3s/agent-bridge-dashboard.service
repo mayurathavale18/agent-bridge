@@ -1,0 +1,12 @@
+[Unit]
+Description=Loopback access to the agent-bridge dashboard in k3s
+After=k3s.service
+Requires=k3s.service
+
+[Service]
+ExecStart=/usr/local/bin/k3s kubectl -n agent-stack port-forward --address=127.0.0.1 deployment/agent-bridge 8789:8789
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

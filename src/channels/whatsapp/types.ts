@@ -37,6 +37,8 @@ export interface OpenWaMessage {
 
 /** The minimum of OpenWA we depend on. Lets the channel be tested against a fake. */
 export interface MessagingClient {
+  react?(sessionId: string, chatId: string, messageId: string, emoji: string): Promise<unknown>;
+  sendChatState?(sessionId: string, chatId: string, state: 'typing' | 'paused'): Promise<unknown>;
   sendText(
     sessionId: string,
     chatId: string,
