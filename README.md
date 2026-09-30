@@ -22,6 +22,29 @@ WhatsApp ──► OpenWA ──webhook──►  ┌─────────
 
 The contract lives in [`docs/harness-spec.md`](docs/harness-spec.md).
 
+## Motivation
+
+The agent ecosystem is fragmenting in a way that works against the people using it. I run
+Command Code daily, Hermes for WhatsApp, Codex for some things — and each one arrives with its
+own transport, its own session model, and its own assumptions about being driven from a
+terminal. None of them are reachable from my phone, which is where half my actual thinking
+happens.
+
+Writing a WhatsApp integration per agent is a losing game: every integration re-solves the same
+problems — webhook verification, duplicate suppression, reply chunking, keeping the agent's own
+messages from re-triggering it — and none of it is the interesting part. The interesting part is
+the *contract*: if every harness normalizes to one event language, a channel written once works
+with every agent, past and future.
+
+The second motivation is safety. A chat message is remote code execution with casual UX: it
+arrives while you're away, in a medium designed for quick replies. The approval transport here
+exists because I wanted to be asked, in the same chat, before an agent touched something
+destructive — and I wanted the failure mode of an unanswered approval to be *silence*, not a
+default yes.
+
+The third is ownership. Agents are only as private as the credentials they hold, so this bridge
+is built to deploy onto my own cluster, next to my own data, with no relay in the middle.
+
 ## Status
 
 This is the **contract skeleton**. It compiles, it runs, and the `cmd` adapter drives a real

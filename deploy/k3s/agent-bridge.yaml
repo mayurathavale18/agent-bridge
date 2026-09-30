@@ -1,0 +1,68 @@
+# agent-bridge on k3s — WhatsApp channel server from the published npm package.
+#
+# The OpenWA gateway (also in this namespace, see openwa.yaml) posts message webhooks to
+# http://agent-bridge.agent-stack.svc:8788/webhook, and the bridge drives whichever harness
+# AGENT_BRIDGE_HARNESS selects. OPENWA_BASE_URL points back at the in-cluster OpenWA service
+# for outbound delivery, so no traffic leaves the cluster.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agent-stack
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: agent-bridge-env
+  namespace: agent-stack
+stringData:
+  OPENWA_BASE_URL: "http://openwa.agent-stack.svc.cluster.local:2785"
+  OPENWA_API_KEY: "owa_k1_e75c142a87ed182c82739f9c0c2357647f1960a18ce353b627e8287da52ccc26"
+  OPENWA_WEBHOOK_SECRET: "ec6e9a8d8b5cf317af478032d3373ea2"
+  OPENWA_SESSION_ID: "b7a869af-417a-4e64-98bd-df63ba4fb9c4"
+  OPENWA_ALLOW_SELF_CHAT: "true"
+  OPENWA_SELF_JID: "917972833243@c.us,157076097654949@lid"
+  OPENWA_ALLOWED_USERS: "917972833243@c.us,157076097654949@lid"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-bridge
+  namespace: agent-stack
+  labels: { app: agent-bridge }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: agent-bridge }
+  template:
+    metadata:
+      labels: { app: agent-bridge }
+    spec:
+      containers:
+        - name: serve
+          image: agent-bridge:0.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8788
+          envFrom:
+            - secretRef: { name: agent-bridge-env }
+          readinessProbe:
+            httpGet: { path: "/health", port: 8788 }
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: "/health", port: 8788 }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-bridge
+  namespace: agent-stack
+spec:
+  selector: { app: agent-bridge }
+  ports:
+    - name: http
+      port: 8788
+      targetPort: 8788
