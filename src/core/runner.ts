@@ -31,6 +31,7 @@ export interface RunRequest {
   workspace: string;
   /** Resume this prior session, when the harness supports it. */
   sessionId?: string;
+  attachments?: { path: string; mime: string }[];
   /** Harness-specific settings (model, maxTurns, permissionMode, …). */
   config?: Record<string, unknown>;
   /** Extra environment variables for the child process (secrets are injected here, never in config). */
@@ -45,6 +46,8 @@ export interface AgentRunner {
   readonly id: string;
 
   capabilities(): HarnessCapabilities;
+  /** Native catalog, when available; absence means model discovery is unsupported. */
+  listModels?(): Promise<string[]>;
 
   /**
    * Execute one run, yielding normalized events. Must yield exactly one terminal
@@ -57,4 +60,5 @@ export interface AgentRunner {
    * Required only when capabilities().approvals is true.
    */
   respondApproval?(approvalId: string, decision: 'approve' | 'deny', note?: string): Promise<void>;
+  respondChoice?(questionId: string, optionId: string | null): Promise<void>;
 }

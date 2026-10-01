@@ -65,3 +65,28 @@ test('starts empty when the file is missing or corrupt', async () => {
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('named threads survive restart and isolate harness history', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'agent-bridge-threads-'));
+  const file = join(dir, 'sessions.json');
+  try {
+    const store = new SessionStore({ file });
+    store.remember('chat', 'legacy-cmd');
+    await store.createThread('chat', 'website');
+    store.remember(store.threadKey('chat'), 'website-cmd');
+    await store.createThread('codex:chat', 'website');
+    store.remember(store.threadKey('codex:chat'), 'website-codex');
+    await store.save();
+    const reopened = new SessionStore({ file });
+    await reopened.load();
+    assert.equal(reopened.get(reopened.threadKey('chat'))?.sessionId, 'website-cmd');
+    assert.equal(reopened.get(reopened.threadKey('codex:chat'))?.sessionId, 'website-codex');
+    await reopened.useThread('chat', 'default');
+    assert.equal(reopened.get(reopened.threadKey('chat'))?.sessionId, 'legacy-cmd');
+    await assert.rejects(reopened.createThread('chat', '../escape'));
+    await assert.rejects(reopened.createThread('chat', 'website'));
+    await assert.rejects(reopened.useThread('chat', 'missing'));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

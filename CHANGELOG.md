@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 — 2026-10-02
+
+- Add direct WhatsApp model catalogs and verified harness/model switching.
+- Add named threads with independent harness history and restart persistence.
+- Receive attachments and deliver workspace images/documents up to 10 MiB.
+- Add numbered clarification replies tied to unique question messages for capable adapters.
+- Add private context indexes and a ChatGPT, Claude and Command Code transcript importer.
+- Preserve environment pins and retain the working adapter when readiness checks fail.
+
 ## 0.2.1 — 2026-10-02
 
 - Preserve structured CLI failures instead of overwriting them with informational stderr.

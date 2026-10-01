@@ -73,7 +73,7 @@ export function extractTrigger(message: OpenWaMessage, opts: TriggerOptions = {}
 
   if (!mentionedById && !mentionedInBody && !hasAtMe) return null;
 
-  const prompt = stripTriggerTokens(message.body, selfDigits);
+  const prompt = stripTriggerTokens(message.body, selfDigits) || (message.media ? 'Inspect the attached file.' : '');
   if (!prompt) return null;
 
   return { chatId: message.chatId, prompt, messageId: message.id };

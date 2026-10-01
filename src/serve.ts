@@ -7,7 +7,7 @@ import { SessionStore } from './core/session-store.ts';
 import { WhatsAppChannel } from './channels/whatsapp/channel.ts';
 import { OpenWaClient } from './channels/whatsapp/client.ts';
 import { DashboardServer } from './dashboard/server.ts';
-import { buildRunner, catalogEntry, resolveHarnessConfig } from './harnesses/catalog.ts';
+import { buildRunner, catalogEntry, resolveHarnessConfig, HARNESS_CATALOG } from './harnesses/catalog.ts';
 
 const env = (name: string, fallback?: string): string | undefined => {
   const value = process.env[name];
@@ -27,11 +27,13 @@ async function main(): Promise<void> {
   // Selection precedence: an explicit AGENT_BRIDGE_HARNESS pins, else whatever the dashboard saved.
   const config = new ConfigStore({ file: env('AGENT_BRIDGE_CONFIG_FILE') });
   await config.load();
-  const activeId = env('AGENT_BRIDGE_HARNESS') ?? config.activeHarness ?? 'cmd';
+  let activeId = env('AGENT_BRIDGE_HARNESS') ?? config.activeHarness ?? 'cmd';
 
   const entry = catalogEntry(activeId);
   const resolved = resolveHarnessConfig(entry, config.harnessConfig(activeId));
   const runner = buildRunner(activeId, resolved.values);
+  let runningValues = resolved.values;
+  let bootSignature = JSON.stringify({ activeId, values: runningValues });
 
   const sessions = new SessionStore({ file: env('AGENT_BRIDGE_SESSION_FILE') });
   await sessions.load();
@@ -52,11 +54,50 @@ async function main(): Promise<void> {
     progressThrottleMs: Number(env('AGENT_BRIDGE_PROGRESS_MS', '1200')),
     approvalTimeoutMs: Number(env('AGENT_BRIDGE_APPROVAL_TIMEOUT_MS', '120000')),
     sessions,
+    control: {
+      harnesses: HARNESS_CATALOG.map(entry => entry.manifest.id),
+      model: () => typeof runningValues.model === 'string' ? runningValues.model : undefined,
+      select: async (id, model) => {
+        if (env('AGENT_BRIDGE_HARNESS') && id !== activeId) throw new Error('Harness is pinned by AGENT_BRIDGE_HARNESS.');
+        const entry = catalogEntry(id);
+        const saved = config.harnessConfig(id);
+        if (model !== undefined) {
+          if (!(entry.manifest.config?.properties as Record<string, unknown> | undefined)?.model) throw new Error('This harness has no model setting.');
+          if (resolveHarnessConfig(entry, saved).pinned.includes('model')) throw new Error('Model is pinned by an environment variable.');
+          if (model === 'default') delete saved.model;
+          else saved.model = model;
+        }
+        const next = resolveHarnessConfig(entry, saved);
+        const candidate = buildRunner(id, next.values);
+        // Catalog visibility is not an entitlement check: verify explicit changes before saving.
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 30_000);
+        let success = false;
+        try {
+          for await (const event of candidate.run({ prompt: 'Reply READY only. Do not use tools.', workspace }, controller.signal)) {
+            if (event.type === 'done') success = event.exitCode === 0;
+          }
+          if (!success) throw new Error('Selected harness/model failed its readiness check; previous settings retained.');
+        } finally { clearTimeout(timer); }
+        const previousId = config.activeHarness;
+        const previousValues = config.harnessConfig(id);
+        config.setHarnessConfig(id, saved);
+        config.setActiveHarness(id);
+        try { await config.save(true); }
+        catch (err) {
+          config.setHarnessConfig(id, previousValues);
+          config.setActiveHarness(previousId ?? activeId);
+          throw err;
+        }
+        activeId = id;
+        runningValues = next.values;
+        bootSignature = JSON.stringify({ activeId, values: runningValues });
+        return candidate;
+      },
+    },
   });
 
-  // The running harness is built once at boot, so the dashboard says plainly when saved changes
-  // are waiting on a restart rather than appearing to have no effect.
-  const bootSignature = JSON.stringify({ activeId, values: resolved.values });
+  // Chat controls update the running signature; other dashboard changes still need a restart.
   const dashboard = new DashboardServer({
     config,
     workspace,

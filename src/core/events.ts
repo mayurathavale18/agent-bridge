@@ -19,6 +19,8 @@ export type AgentEvent =
    * answers via AgentRunner.respondApproval().
    */
   | { type: 'approval_request'; id: string; prompt: string; options?: string[] }
+  /** A clarification, distinct from permission to execute a tool. */
+  | { type: 'choice_request'; id: string; prompt: string; options: { id: string; label: string }[] }
   /** A file the run produced (diff, screenshot, report) the channel should deliver. */
   | { type: 'artifact'; path: string; mime: string }
   /** Token/cost accounting for the run, emitted as it becomes known. */
@@ -38,6 +40,7 @@ export const AGENT_EVENT_TYPES = [
   'tool_start',
   'tool_end',
   'approval_request',
+  'choice_request',
   'artifact',
   'usage',
   'error',

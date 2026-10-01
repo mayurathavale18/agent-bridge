@@ -19,3 +19,10 @@ test('only an exact match counts, so a real prompt is still a prompt', () => {
     assert.equal(parseChatCommand(text), null, `expected null for ${JSON.stringify(text)}`);
   }
 });
+
+test('explicit commands preserve names and reject unknown slash commands', () => {
+  assert.deepEqual(parseChatCommand('/new Website'), { name: 'new', argument: 'Website' });
+  assert.deepEqual(parseChatCommand('/use Website'), { name: 'use', argument: 'Website' });
+  assert.deepEqual(parseChatCommand('/threads'), { name: 'threads', argument: '' });
+  assert.deepEqual(parseChatCommand('/nonsense'), { name: 'unknown', argument: '/nonsense' });
+});

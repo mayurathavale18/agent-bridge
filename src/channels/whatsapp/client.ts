@@ -43,6 +43,10 @@ export class OpenWaClient implements MessagingClient {
     });
   }
 
+  async sendFile(sessionId: string, chatId: string, file: { base64: string; mimetype: string; filename: string }): Promise<{ messageId: string }> {
+    return this.#post(`/api/sessions/${encodeURIComponent(sessionId)}/messages/${file.mimetype.startsWith('image/') ? 'send-image' : 'send-document'}`, { chatId, ...file });
+  }
+
   async react(sessionId: string, chatId: string, messageId: string, emoji: string): Promise<unknown> {
     return this.#post(`/api/sessions/${encodeURIComponent(sessionId)}/messages/react`, { chatId, messageId, emoji });
   }

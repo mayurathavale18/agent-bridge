@@ -2,6 +2,7 @@ import type { AgentEvent } from '../core/events.ts';
 import type { AgentRunner, RunRequest } from '../core/runner.ts';
 import { tryParseJson } from '../core/ndjson.ts';
 import { runProcess } from './cli-process.ts';
+import { codexModels } from './models.ts';
 
 export interface CodexConfig {
   binary?: string;
@@ -20,6 +21,9 @@ export function codexArgs(config: CodexConfig, req: RunRequest): string[] {
   if (config.ignoreUserConfig === true || config.ignoreUserConfig === 'true') args.push('--ignore-user-config');
   if (config.model) args.push('--model', config.model);
   if (config.effort) args.push('-c', `model_reasoning_effort=${JSON.stringify(config.effort)}`);
+  for (const attachment of req.attachments ?? []) {
+    if (attachment.mime.startsWith('image/')) args.push('--image', attachment.path);
+  }
   if (req.sessionId) args.push(req.sessionId);
   args.push('--', req.prompt);
   return args;
@@ -37,6 +41,7 @@ export class CodexHarness implements AgentRunner {
   readonly id = 'codex';
   private config: CodexConfig;
   constructor(config: CodexConfig = {}) { this.config = config; }
+  listModels = codexModels;
   capabilities() { return { streaming: true, resume: true, approvals: false, nativeMcp: true, reportsCost: false }; }
   async *run(req: RunRequest, signal?: AbortSignal): AsyncIterable<AgentEvent> {
     let sessionId = req.sessionId, text = '', reportedError = false;

@@ -1,6 +1,7 @@
 import type { AgentEvent } from '../core/events.ts';
 import type { AgentRunner, RunRequest } from '../core/runner.ts';
 import { runProcess } from './cli-process.ts';
+import { cliOutput, claudeModels } from './models.ts';
 
 export interface ClaudeCodeConfig {
   binary?: string;
@@ -25,6 +26,7 @@ export class ClaudeCodeHarness implements AgentRunner {
   readonly id = 'claude-code';
   private config: ClaudeCodeConfig;
   constructor(config: ClaudeCodeConfig = {}) { this.config = config; }
+  async listModels() { return claudeModels(await cliOutput(this.config.binary ?? 'claude', ['--help'])); }
   capabilities() { return { streaming: true, resume: true, approvals: false, nativeMcp: true, reportsCost: true }; }
   async *run(req: RunRequest, signal?: AbortSignal): AsyncIterable<AgentEvent> {
     const tools = new Map<string, string>();

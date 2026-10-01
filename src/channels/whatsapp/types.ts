@@ -33,10 +33,14 @@ export interface OpenWaMessage {
   /** JIDs @mentioned in the message. */
   mentionedIds?: string[];
   isStatusBroadcast?: boolean;
+  media?: { mimetype: string; filename?: string; data?: string; omitted?: boolean; sizeBytes?: number };
+  quotedMessage?: { id: string; body: string };
+  button?: { id: string; text?: string };
 }
 
 /** The minimum of OpenWA we depend on. Lets the channel be tested against a fake. */
 export interface MessagingClient {
+  sendFile?(sessionId: string, chatId: string, file: { base64: string; mimetype: string; filename: string }): Promise<{ messageId: string }>;
   react?(sessionId: string, chatId: string, messageId: string, emoji: string): Promise<unknown>;
   sendChatState?(sessionId: string, chatId: string, state: 'typing' | 'paused'): Promise<unknown>;
   sendText(

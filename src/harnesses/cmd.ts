@@ -7,6 +7,7 @@ import type { AgentEvent } from '../core/events.ts';
 import type { AgentRunner, HarnessCapabilities, RunRequest } from '../core/runner.ts';
 import { tryParseJson } from '../core/ndjson.ts';
 import { installApprovalHook } from './cmd-hook.ts';
+import { cliOutput, commandModels } from './models.ts';
 
 /**
  * Adapter for Command Code's headless mode (`cmdc -p … --output-format json`).
@@ -195,6 +196,8 @@ export class CmdHarness implements AgentRunner {
     this.#config = config;
     this.#log = config.log ?? (() => undefined);
   }
+
+  async listModels() { return commandModels(await cliOutput(this.#config.binary ?? 'cmdc', ['--list-models'])); }
 
   capabilities(): HarnessCapabilities {
     return {

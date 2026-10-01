@@ -6,8 +6,78 @@ import { SessionStore } from '../../core/session-store.ts';
 import type { AgentEvent } from '../../core/events.ts';
 import type { AgentRunner, HarnessCapabilities, RunRequest } from '../../core/runner.ts';
 import type { MessagingClient, OpenWaWebhookEnvelope } from './types.ts';
+import { commandModels, claudeModels } from '../../harnesses/models.ts';
+import { incomingFile, outgoingFile } from './files.ts';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const SELF = '917972833243@c.us';
+
+test('native model parsers exclude headings and preserve model identifiers', () => {
+  assert.deepEqual(commandModels('Available models  ·  2 models\nOpen Source\nmoonshotai/kimi-k3   fast (default)\nopenai/gpt-6-astra   reasoning'), ['moonshotai/kimi-k3', 'openai/gpt-6-astra']);
+  assert.deepEqual(claudeModels("  --model <model> alias (e.g. 'fable', 'opus', or 'sonnet') or full name ('claude-fable-5')"), ['fable', 'opus', 'sonnet']);
+  assert.deepEqual(claudeModels("  --model <model> Model. Provide\n        an alias (e.g.\n        'fable', 'opus', or 'sonnet')\n  --other 'wrong-alias'"), ['fable', 'opus', 'sonnet']);
+});
+
+test('file exchange confines paths and validates inbound encoding', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'bridge-files-'));
+  try {
+    const workspace = join(dir, 'workspace');
+    await mkdir(workspace);
+    await writeFile(join(dir, 'outside.txt'), 'private');
+    await writeFile(join(workspace, '.credentials'), 'secret');
+    const path = await incomingFile(workspace, { mimetype: 'text/plain', filename: '../note.txt', data: Buffer.from('hello').toString('base64') });
+    assert.equal(await readFile(path, 'utf8'), 'hello');
+    assert.equal((await outgoingFile(workspace, path)).base64, 'aGVsbG8=');
+    await assert.rejects(outgoingFile(workspace, '../outside.txt'));
+    await assert.rejects(outgoingFile(workspace, '.credentials'));
+    await assert.rejects(incomingFile(workspace, { mimetype: 'text/plain', data: 'bad encoding!' }));
+    await assert.rejects(incomingFile(workspace, { mimetype: 'text/plain', omitted: true }));
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('chat commands select models and named threads without invoking the agent for commands', async () => {
+  const client = new FakeClient();
+  const requests: RunRequest[] = [];
+  let selected: string | undefined;
+  const runner: AgentRunner = { id: 'codex', capabilities: () => new MockHarness().capabilities(),
+    listModels: async () => ['available-model'], async *run(req) {
+      requests.push(req);
+      yield { type: 'done', text: 'ok', exitCode: 0, sessionId: `session-${requests.length}` };
+    } };
+  const channel = new WhatsAppChannel({ runner, client, workspace: process.cwd(), log: () => {},
+    control: { harnesses: ['codex'], model: () => selected, select: async (_id, model) => { selected = model; return runner; } } });
+  let id = 0;
+  for (const prompt of ['/models', '/model invalid', '/model available-model', '/new website', 'first', '/use default', 'second', '/use website', 'third']) {
+    await channel.handle(envelope(`command-${++id}`, `@me ${prompt}`, false));
+    await channel.idle();
+  }
+  assert.equal(selected, 'available-model');
+  assert.equal(requests.length, 3);
+  assert.equal(requests[2]?.sessionId, 'session-1');
+  assert.ok(client.calls.some(call => call.includes('Unknown model')));
+});
+
+test('clarifications require a matching question and resume the same running turn', async () => {
+  const client = new FakeClient();
+  let answer: string | null | undefined;
+  const runner: AgentRunner = { id: 'choice-test', capabilities: () => new MockHarness().capabilities(),
+    respondChoice: async (_id, value) => { answer = value; }, async *run() {
+      yield { type: 'choice_request', id: 'question-1', prompt: 'Pick one', options: [{ id: 'a', label: 'First' }, { id: 'b', label: 'Second' }] };
+      yield { type: 'done', text: 'continued', exitCode: 0, sessionId: 'same-session' };
+    } };
+  const channel = new WhatsAppChannel({ runner, client, workspace: process.cwd(), log: () => {}, approvalTimeoutMs: 1000 });
+  await channel.handle(envelope('question', '@me start', false));
+  while (!client.calls.some(call => call.includes('/choose '))) await new Promise(resolve => setTimeout(resolve, 1));
+  const questionId = /\/choose ([\w-]+)/.exec(client.calls.find(call => call.includes('/choose '))!)![1];
+  await channel.handle(envelope('stale', '@me /choose old-question 1', false));
+  assert.equal(answer, undefined);
+  await channel.handle(envelope('answer', `@me /choose ${questionId} 2`, false));
+  await channel.idle();
+  assert.equal(answer, 'b');
+  assert.ok(client.calls.some(call => call.includes('continued')));
+});
 
 class FakeClient implements MessagingClient {
   calls: string[] = [];

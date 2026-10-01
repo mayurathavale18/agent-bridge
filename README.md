@@ -1,5 +1,9 @@
 # agent-bridge
 
+WhatsApp now supports direct model/harness commands, named threads and file exchange.
+See [chat controls and private context imports](docs/chat-controls.md) for commands,
+export import instructions and clarification transport limits.
+
 [![CI](https://github.com/mayurathavale18/agent-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/mayurathavale18/agent-bridge/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-5b9dff.svg)](LICENSE)
 ![Node](https://img.shields.io/badge/node-%E2%89%A522.6-5b9dff)
