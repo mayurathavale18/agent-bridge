@@ -1,7 +1,8 @@
 # Changelog
 
-## 0.2.0
+## 0.2.0 — 2026-10-02
 
+- Add a supervised dashboard Save & restart action that drains active WhatsApp work.
 - Add Codex and Claude Code JSONL adapters with native permissions, tool progress and resume.
 - Isolate WhatsApp sessions by harness while preserving existing cmd sessions.
 - Add minimal setup and contribution guides, an authenticated TLS ingress and website workspace.

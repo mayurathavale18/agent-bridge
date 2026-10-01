@@ -13,6 +13,7 @@ export interface DashboardOptions {
   /** Extra status shown in the header (e.g. session count). */
   statusLine?: () => string;
   log?: (message: string) => void;
+  restart?: () => void;
 }
 
 async function readBody(req: IncomingMessage): Promise<string> {
@@ -37,6 +38,9 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
  * beyond the host is an explicit operator decision.
  */
 export class DashboardServer {
+  #restart: (() => void) | undefined;
+  #restarting = false;
+  #instanceId = Date.now().toString();
   #config: ConfigStore;
   #workspace: string;
   #catalog: CatalogEntry[];
@@ -45,6 +49,7 @@ export class DashboardServer {
   #log: (message: string) => void;
 
   constructor(opts: DashboardOptions) {
+    this.#restart = opts.restart;
     this.#config = opts.config;
     this.#workspace = opts.workspace;
     this.#catalog = opts.catalog ?? HARNESS_CATALOG;
@@ -55,6 +60,8 @@ export class DashboardServer {
 
   #state(): unknown {
     return {
+      restartAvailable: !!this.#restart,
+      instanceId: this.#instanceId,
       activeHarness: this.#activeId(),
       workspace: this.#workspace,
       statusLine: this.#statusLine(),
@@ -101,6 +108,17 @@ export class DashboardServer {
 
     if (req.method === 'GET' && path === '/api/state') {
       sendJson(res, 200, this.#state());
+      return;
+    }
+
+    if (req.method === 'POST' && path === '/api/restart') {
+      if (!this.#restart) { sendJson(res, 409, { errors: ['restart requires a process supervisor'] }); return; }
+      if (this.#restarting) { sendJson(res, 409, { errors: ['restart already pending'] }); return; }
+      this.#restarting = true;
+      try { await this.#config.save(true); }
+      catch { this.#restarting = false; sendJson(res, 500, { errors: ['could not persist settings; restart cancelled'] }); return; }
+      res.once('finish', this.#restart);
+      sendJson(res, 202, { ok: true });
       return;
     }
 

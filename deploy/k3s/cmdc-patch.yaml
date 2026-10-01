@@ -6,10 +6,11 @@ spec:
     spec:
       containers:
         - name: serve
-          image: agent-bridge:cmdc-20260930
+          image: agent-bridge:0.2.0
           env:
             - { name: HOME, value: /data }
-            - { name: AGENT_BRIDGE_HARNESS, value: cmd }
+            - { name: AGENT_BRIDGE_HARNESS, value: "" }
+            - { name: AGENT_BRIDGE_ALLOW_RESTART, value: "true" }
             - { name: AGENT_BRIDGE_WORKSPACE, value: /data/workspace }
             - { name: AGENT_BRIDGE_CONFIG_FILE, value: /data/bridge-config.json }
             - { name: AGENT_BRIDGE_SESSION_FILE, value: /data/bridge-sessions.json }

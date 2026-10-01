@@ -58,6 +58,7 @@ export const DASHBOARD_HTML = `<!doctype html>
   <div class="card" id="form"></div>
   <div class="actions">
     <button class="primary" id="save">Save</button>
+    <button class="primary" id="restart" disabled>Save &amp; restart</button>
     <span class="status" id="status"></span>
   </div>
 </main>
@@ -82,6 +83,8 @@ export const DASHBOARD_HTML = `<!doctype html>
   }
 
   function render() {
+    el('restart').disabled = !state.restartAvailable;
+    el('restart').title = state.restartAvailable ? 'Wait for active work, then restart and apply saved settings' : 'Enable AGENT_BRIDGE_ALLOW_RESTART=true under Kubernetes or another supervisor';
     el('active').textContent = state.activeHarness;
     el('workspace').textContent = state.workspace;
     el('extra').textContent = state.statusLine || '';
@@ -220,6 +223,29 @@ export const DASHBOARD_HTML = `<!doctype html>
       status('saved', 'ok');
       refresh();
     }).catch(function (err) { status('failed: ' + err.message, 'err'); });
+  };
+
+  el('restart').onclick = function () {
+    var h = current(), previous = state.instanceId;
+    el('restart').disabled = true;
+    status('saving and restarting — waiting for active work…');
+    send('PUT', '/api/harnesses/' + encodeURIComponent(h.manifest.id) + '/config', collect()).then(function (res) {
+      if (res.errors) throw new Error(res.errors.join('; '));
+      return send('POST', '/api/restart', {});
+    }).then(function (res) {
+      if (res.errors) throw new Error(res.errors.join('; '));
+      var attempts = 0;
+      function check() {
+        get('/api/state').then(function (data) {
+          if (data.instanceId === previous) throw new Error('waiting');
+          state = data; render(); status('restarted — saved settings applied', 'ok');
+        }).catch(function () {
+          if (++attempts < 40) setTimeout(check, 3000);
+          else { status('Still waiting. Refresh after active work finishes.', 'err'); el('restart').disabled = false; }
+        });
+      }
+      setTimeout(check, 3000);
+    }).catch(function (err) { status(err.message, 'err'); el('restart').disabled = false; });
   };
 
   refresh();

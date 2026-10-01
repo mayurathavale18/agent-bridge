@@ -70,18 +70,20 @@ export class ConfigStore {
     return { activeHarness: this.#data.activeHarness, harnesses: { ...this.#data.harnesses } };
   }
 
-  save(): Promise<void> {
+  save(strict = false): Promise<void> {
     const file = this.#file;
     if (!file) return Promise.resolve();
     const body = `${JSON.stringify(this.#data, null, 2)}\n`;
-    this.#saving = this.#saving.then(async () => {
+    const saving = this.#saving.then(async () => {
       try {
         await writeFile(`${file}.tmp`, body, 'utf8');
         await rename(`${file}.tmp`, file);
       } catch (err) {
+        if (strict) throw err;
         this.#log(`could not persist config: ${err instanceof Error ? err.message : String(err)}`);
       }
     });
-    return this.#saving;
+    this.#saving = saving.catch(() => {});
+    return saving;
   }
 }

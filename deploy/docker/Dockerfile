@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git ca-certific
  && rm -rf /var/lib/apt/lists/*
 
 # Use the registry package by default, or an uploaded npm pack archive for local changes.
-ARG BRIDGE_PACKAGE=@mayurathavale18/agent-bridge
+ARG BRIDGE_PACKAGE=@mayurathavale18/agent-bridge@0.2.0
 COPY . /tmp/bridge-build/
 RUN npm install -g "${BRIDGE_PACKAGE}" command-code@1.69.0 @openai/codex@0.154.0 @anthropic-ai/claude-code@2.1.273 \
  && rm -rf /tmp/bridge-build \

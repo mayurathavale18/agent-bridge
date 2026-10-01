@@ -9,10 +9,11 @@ interface Harness {
   close: () => Promise<void>;
 }
 
-async function startDashboard(env: NodeJS.ProcessEnv = {}): Promise<Harness> {
+async function startDashboard(env: NodeJS.ProcessEnv = {}, restart?: () => void): Promise<Harness> {
   const config = new ConfigStore();
   const server = new DashboardServer({
     config,
+    restart,
     workspace: '/tmp/workspace',
     env,
     log: () => {},
@@ -187,4 +188,40 @@ test('404s an unknown route', async () => {
   } finally {
     await dash.close();
   }
+});
+
+
+test('restart is opt-in, rejects cross-origin requests and runs once after response', async () => {
+  const disabled = await startDashboard();
+  try { assert.equal((await sendJson(disabled.base, 'POST', '/api/restart', {})).status, 409); }
+  finally { await disabled.close(); }
+  let calls = 0;
+  const dash = await startDashboard({}, () => { calls++; });
+  try {
+    const denied = await fetch(`${dash.base}/api/restart`, { method: 'POST', headers: {
+      origin: 'https://example.com', 'content-type': 'application/json' }, body: '{}' });
+    assert.equal(denied.status, 403);
+    assert.equal(calls, 0);
+    const state = (await getJson(dash.base, '/api/state')).body;
+    assert.equal(state.restartAvailable, true);
+    assert.equal(typeof state.instanceId, 'string');
+    assert.equal((await sendJson(dash.base, 'POST', '/api/restart', {})).status, 202);
+    assert.equal(calls, 1);
+    assert.equal((await sendJson(dash.base, 'POST', '/api/restart', {})).status, 409);
+    assert.equal(calls, 1);
+  } finally { await dash.close(); }
+});
+
+test('failed persistence cancels restart and permits retry', async () => {
+  let calls = 0;
+  const dash = await startDashboard({}, () => { calls++; });
+  try {
+    const save = dash.config.save.bind(dash.config);
+    dash.config.save = async () => { throw new Error('disk unavailable'); };
+    assert.equal((await sendJson(dash.base, 'POST', '/api/restart', {})).status, 500);
+    assert.equal(calls, 0);
+    dash.config.save = save;
+    assert.equal((await sendJson(dash.base, 'POST', '/api/restart', {})).status, 202);
+    assert.equal(calls, 1);
+  } finally { await dash.close(); }
 });

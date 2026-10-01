@@ -60,6 +60,10 @@ async function main(): Promise<void> {
   const dashboard = new DashboardServer({
     config,
     workspace,
+    restart: env('AGENT_BRIDGE_ALLOW_RESTART') === 'true' ? () => {
+      webhookServer.close();
+      void channel.idle().finally(() => process.exit(0));
+    } : undefined,
     statusLine: () => {
       try {
         const id = config.activeHarness ?? activeId;
@@ -76,7 +80,7 @@ async function main(): Promise<void> {
 
   const port = Number(env('WA_PORT', '8788'));
   const host = env('WA_HOST', '127.0.0.1') as string;
-  channel.start(port, host);
+  const webhookServer = channel.start(port, host);
 
   const dashboardPort = Number(env('DASHBOARD_PORT', '8789'));
   const dashboardHost = env('DASHBOARD_HOST', '127.0.0.1') as string;

@@ -79,3 +79,10 @@ to control the active harness; an environment value otherwise pins it.
 For remote hosting, use [Contabo deployment and authenticated ingress](contabo.md).
 Credentials stay in native CLI storage or process environment; never put them in
 manifests, screenshots, Git, or the dashboard's config file.
+
+
+With Kubernetes or another restart supervisor, enable `AGENT_BRIDGE_ALLOW_RESTART=true`.
+Select the harness, adjust its settings, then click **Save & restart**. The bridge
+waits for active WhatsApp work before exiting; the supervisor restarts it and the
+dashboard reconnects. Keep `AGENT_BRIDGE_HARNESS` empty to use the saved selection.
+For a standalone terminal process, restart it manually instead.

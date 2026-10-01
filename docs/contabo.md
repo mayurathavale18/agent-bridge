@@ -101,3 +101,9 @@ and a rejected write; do not replace this with a privileged container.
 If the server's DNS resolver caches NXDOMAIN after a new record is added,
 cert-manager's HTTP-01 self-check can use public resolvers through its controller
 argument `--acme-http01-solver-nameservers=1.1.1.1:53,8.8.8.8:53`.
+
+With Kubernetes or another restart supervisor, enable `AGENT_BRIDGE_ALLOW_RESTART=true`.
+Select the harness, adjust its settings, then click **Save & restart**. The bridge
+waits for active WhatsApp work before exiting; the supervisor restarts it and the
+dashboard reconnects. Keep `AGENT_BRIDGE_HARNESS` empty to use the saved selection.
+For a standalone terminal process, restart it manually instead.
