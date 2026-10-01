@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1 — 2026-10-02
+
+- Preserve structured CLI failures instead of overwriting them with informational stderr.
+- Decode Codex model errors and explain how to restore the default model.
+- Do not persist or announce sessions created by failed first turns.
+- Clarify Codex model configuration for ChatGPT logins.
+
 ## 0.2.0 — 2026-10-02
 
 - Add a supervised dashboard Save & restart action that drains active WhatsApp work.

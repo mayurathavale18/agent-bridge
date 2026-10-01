@@ -455,3 +455,18 @@ test('a harness that cannot resume is never handed a sessionId', async () => {
 
   assert.deepEqual(harness.requests.map(r => r.sessionId), [undefined, undefined]);
 });
+
+
+test('a failed first turn does not persist or announce its session', async () => {
+  const sessions = new SessionStore(), client = new FakeClient();
+  const runner: AgentRunner = { id: 'codex', capabilities: () => new MockHarness().capabilities(),
+    async *run() {
+      yield { type: 'error', message: 'model not supported' };
+      yield { type: 'done', exitCode: 1, text: '', sessionId: 'failed-session' };
+    } };
+  const channel = new WhatsAppChannel({runner, sessions, client, workspace: process.cwd(), log: () => {}});
+  await channel.handle(envelope('failed', '@me hello', false)); await channel.idle();
+  assert.equal(sessions.size, 0);
+  assert.ok(client.calls.at(-1)?.includes('model not supported'));
+  assert.ok(!client.calls.join('\n').includes('this chat continues'));
+});

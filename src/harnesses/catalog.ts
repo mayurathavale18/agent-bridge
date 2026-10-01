@@ -69,7 +69,7 @@ export const CODEX_MANIFEST: HarnessManifest = {
   capabilities: { streaming: true, resume: true, approvals: false, nativeMcp: true, reportsCost: false },
   config: { type: 'object', properties: {
     binary: { type: 'string', default: 'codex', title: 'Executable', description: 'Executable path, or codex.js on Windows.' },
-    model: { type: 'string', title: 'Model' },
+    model: { type: 'string', title: 'Model', description: 'Leave empty for the CLI default. ChatGPT login supports a different model set from API access.' },
     effort: { type: 'string', enum: ['low', 'medium', 'high', 'xhigh'], title: 'Reasoning effort' },
     ignoreUserConfig: { type: 'boolean', default: false, title: 'Ignore user config', description: 'Skip host config.toml while reusing login credentials.' },
     sandbox: { type: 'string', enum: ['read-only', 'workspace-write'], default: 'read-only', title: 'Sandbox', description: 'No interactive approvals; sandbox restrictions remain enforced.' },

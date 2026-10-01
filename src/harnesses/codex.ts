@@ -1,5 +1,6 @@
 import type { AgentEvent } from '../core/events.ts';
 import type { AgentRunner, RunRequest } from '../core/runner.ts';
+import { tryParseJson } from '../core/ndjson.ts';
 import { runProcess } from './cli-process.ts';
 
 export interface CodexConfig {
@@ -24,18 +25,29 @@ export function codexArgs(config: CodexConfig, req: RunRequest): string[] {
   return args;
 }
 
+function codexError(raw: string): string {
+  const parsed = tryParseJson(raw) as { error?: { message?: string }; message?: string } | null;
+  const message = parsed?.error?.message ?? parsed?.message ?? raw;
+  return message.includes('not supported')
+    ? `${message} Clear Model in the Codex dashboard and click Save & restart to use the CLI default.`
+    : message;
+}
+
 export class CodexHarness implements AgentRunner {
   readonly id = 'codex';
   private config: CodexConfig;
   constructor(config: CodexConfig = {}) { this.config = config; }
   capabilities() { return { streaming: true, resume: true, approvals: false, nativeMcp: true, reportsCost: false }; }
   async *run(req: RunRequest, signal?: AbortSignal): AsyncIterable<AgentEvent> {
-    let sessionId = req.sessionId, text = '';
+    let sessionId = req.sessionId, text = '', reportedError = false;
     yield* runProcess(this.config.binary ?? 'codex', codexArgs(this.config, req), req, (frame): AgentEvent[] => {
       if (frame.type === 'thread.started') sessionId = frame.thread_id;
-      if (frame.type === 'error') return [{ type: 'error', message: frame.message ?? 'Codex error' }];
+      if (frame.type === 'error') {
+        reportedError = true;
+        return [{ type: 'error', message: codexError(frame.message ?? frame.error?.message ?? 'Codex error') }];
+      }
       if (frame.type === 'turn.failed') return [
-        { type: 'error', message: frame.error?.message ?? 'Codex turn failed' },
+        ...(reportedError ? [] : [{ type: 'error' as const, message: codexError(frame.error?.message ?? 'Codex turn failed') }]),
         { type: 'done', exitCode: 1, text, sessionId }];
       if (frame.type === 'turn.completed') return [
         { type: 'usage', inputTokens: frame.usage?.input_tokens, outputTokens: frame.usage?.output_tokens },

@@ -9,7 +9,7 @@ export async function* runProcess(
   binary: string, args: string[], req: RunRequest,
   map: (frame: any) => AgentEvent[], signal?: AbortSignal,
 ): AsyncIterable<AgentEvent> {
-  let text = '', sessionId = req.sessionId, stderr = '', failure: Error | undefined;
+  let text = '', sessionId = req.sessionId, stderr = '', failure: Error | undefined, reportedError = false;
   let terminal: Extract<AgentEvent, { type: 'done' }> | undefined;
   if (signal?.aborted) {
     yield { type: 'done', exitCode: 130, text: '', sessionId };
@@ -32,13 +32,19 @@ export async function* runProcess(
       if (!frame || typeof frame !== 'object') continue;
       for (const event of map(frame)) {
         if (event.type === 'done') { terminal = event; sessionId = event.sessionId ?? sessionId; }
-        else { if (event.type === 'text') text += event.text; yield event; }
+        else {
+          if (event.type === 'text') text += event.text;
+          if (event.type === 'error') reportedError = true;
+          yield event;
+        }
       }
     }
     const code = await closed;
     if (failure) throw failure;
-    if (code !== 0 && stderr.trim()) yield { type: 'error', message: stderr.trim() };
-    if (!terminal && !signal?.aborted) yield { type: 'error', message: 'CLI exited without a terminal result' };
+    if (!reportedError && code !== 0 && stderr.trim()) {
+      yield { type: 'error', message: stderr.trim() }; reportedError = true;
+    }
+    if (!terminal && !reportedError && !signal?.aborted) yield { type: 'error', message: 'CLI exited without a terminal result' };
     yield { type: 'done', exitCode: code || terminal?.exitCode || (terminal ? 0 : 1),
       text: terminal?.text || text, sessionId };
   } catch (err) {

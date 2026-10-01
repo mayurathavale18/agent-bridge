@@ -301,7 +301,7 @@ export class WhatsAppChannel {
 
         if (event.type === 'done') {
           finalText = event.text || streamed || (event.exitCode !== 0 ? latest : '(no output)');
-          if (event.sessionId) reportedSession = event.sessionId;
+          if (event.exitCode === 0 && event.sessionId) reportedSession = event.sessionId;
         }
       }
     } catch (err) {

@@ -70,3 +70,25 @@ test('both JSONL adapters normalize text, tools, usage and exactly one terminal 
     assert.equal((cancelled.at(-1) as any).exitCode, 130);
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
+
+
+test('Codex keeps the structured model error instead of incidental stderr', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'bridge-codex-error-'));
+  try {
+    const binary = join(dir, 'fixture.mjs');
+    const message = JSON.stringify({type: 'error', status: 400, error: {
+      message: "The 'gpt-6-luna' model is not supported when using Codex with a ChatGPT account." }});
+    const frames = [{type: 'thread.started', thread_id: 'failed-session'},
+      {type: 'error', message}, {type: 'turn.failed', error: {message}}];
+    await writeFile(binary, `console.error('Reading additional input from stdin...');
+      console.log(${JSON.stringify(frames.map(f => JSON.stringify(f)).join('\n'))}); process.exitCode=1;`);
+    const events = await collect(new CodexHarness({binary}).run({workspace: dir, prompt: 'hello'}));
+    const errors = events.filter(e => e.type === 'error');
+    assert.equal(errors.length, 1);
+    assert.match(errors[0].message, /gpt-6-luna.*not supported/);
+    assert.match(errors[0].message, /Clear Model/);
+    assert.ok(!errors[0].message.includes('stdin'));
+    assert.ok(!errors[0].message.includes('"status"'));
+    assert.equal((events.at(-1) as any).exitCode, 1);
+  } finally { await rm(dir, {recursive: true, force: true}); }
+});
