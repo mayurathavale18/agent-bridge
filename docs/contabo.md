@@ -78,8 +78,8 @@ The active webhook still points to the same bridge; `select-harness.py` controls
 Hermes versus bridge routing, not which built-in bridge runner is selected.
 To use dashboard selection, remove the environment pin for `AGENT_BRIDGE_HARNESS`.
 
-The deployed package is built from this checkout; these changes have not been
-published to npm. The previous bridge deployment is saved on the server at
+The deployed image installs @mayurathavale18/agent-bridge@0.2.0 from the public
+npm registry. The previous bridge deployment is saved on the server at
 `/srv/agent-stack/bridge-build/agent-bridge-before-cmdc.yaml`.
 
 For Codex tool execution on a host with AppArmor, install the dedicated profile
