@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0
+
+- Add Codex and Claude Code JSONL adapters with native permissions, tool progress and resume.
+- Isolate WhatsApp sessions by harness while preserving existing cmd sessions.
+- Add minimal setup and contribution guides, an authenticated TLS ingress and website workspace.
+- Reject cross-origin dashboard writes and replace deployment credentials with placeholders.
+
+
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project aims for
 [Semantic Versioning](https://semver.org/).

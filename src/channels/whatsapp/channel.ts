@@ -120,13 +120,13 @@ export class WhatsAppChannel {
 
   async #handleCommand(sessionId: string, chatId: string, command: ChatCommand): Promise<void> {
     if (command === 'new') {
-      this.#sessions.clear(chatId);
+      this.#sessions.clear(this.#sessionKey(chatId));
       this.#log(`session cleared for ${chatId}`);
       await this.#notice(sessionId, chatId, `started a new session — the next message begins fresh.\n${COMMAND_HELP}`);
       return;
     }
 
-    const record = this.#sessions.get(chatId);
+    const record = this.#sessions.get(this.#sessionKey(chatId));
     await this.#notice(
       sessionId,
       chatId,
@@ -206,6 +206,11 @@ export class WhatsAppChannel {
     }
   }
 
+  #sessionKey(chatId: string): string {
+    // Preserve existing cmd sessions; other harnesses must never resume cmd history.
+    return this.#runner.id === 'cmd' ? chatId : `${this.#runner.id}:${chatId}`;
+  }
+
   #label(text: string): string {
     return `👾 *Agent · ${this.#runner.id}*\n\n${text}`;
   }
@@ -250,7 +255,7 @@ export class WhatsAppChannel {
     // Continue this chat's session when the harness can resume; otherwise every message is a
     // fresh run and the chat has no memory.
     const canResume = this.#runner.capabilities().resume;
-    const previousSession = canResume ? this.#sessions.get(chatId)?.sessionId : undefined;
+    const previousSession = canResume ? this.#sessions.get(this.#sessionKey(chatId))?.sessionId : undefined;
     const request: RunRequest = { prompt, workspace: this.#workspace, sessionId: previousSession };
     const controller = new AbortController();
     this.#aborts.set(chatId, controller);
@@ -308,7 +313,7 @@ export class WhatsAppChannel {
 
     let note: string | undefined;
     if (reportedSession && reportedSession !== previousSession) {
-      this.#sessions.remember(chatId, reportedSession);
+      this.#sessions.remember(this.#sessionKey(chatId), reportedSession);
       // Say it once, when a session begins; after that, continuity is silent.
       note = `session ${reportedSession.slice(0, 8)} — this chat continues from your next message.`;
     }

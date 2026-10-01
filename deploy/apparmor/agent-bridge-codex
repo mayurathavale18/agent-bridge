@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright The Docker, Moby and containerd Authors.
+# Derived from containerd's Apache-2.0 default profile:
+# https://github.com/containerd/containerd/blob/main/contrib/apparmor/template.go
+# The mount denial is replaced with permission for the nested Codex sandbox.
+# Apply only with uid 1000, all capabilities dropped, and no privilege escalation.
+#include <tunables/global>
+profile agent-bridge-codex flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+  network,
+  deny network alg,
+  capability,
+  file,
+  mount,
+  pivot_root,
+  umount,
+  signal (receive) peer=unconfined,
+  signal (receive) peer=runc,
+  signal (receive) peer=crun,
+  signal (send,receive) peer=agent-bridge-codex,
+  deny @{PROC}/* w,
+  deny @{PROC}/{[^1-9/],[^1-9/][^0-9/],[^1-9s/][^0-9y/][^0-9s/],[^1-9/][^0-9/][^0-9/][^0-9/]*}/** w,
+  deny @{PROC}/sys/[^k]** w,
+  deny @{PROC}/sys/kernel/{?,??,[^s][^h][^m]**} w,
+  deny @{PROC}/sysrq-trigger rwklx,
+  deny @{PROC}/kcore rwklx,
+  deny /sys/[^f]*/** wklx,
+  deny /sys/f[^s]*/** wklx,
+  deny /sys/fs/[^c]*/** wklx,
+  deny /sys/fs/c[^g]*/** wklx,
+  deny /sys/fs/cg[^r]*/** wklx,
+  deny /sys/firmware/** rwklx,
+  deny /sys/devices/virtual/powercap/** rwklx,
+  deny /sys/kernel/security/** rwklx,
+  ptrace (trace,tracedby,read,readby) peer=agent-bridge-codex,
+}

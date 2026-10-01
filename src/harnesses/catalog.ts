@@ -2,6 +2,8 @@ import { envOverrides, schemaDefaults } from '../core/config-schema.ts';
 import type { HarnessManifest } from '../core/manifest.ts';
 import type { AgentRunner } from '../core/runner.ts';
 import { CmdHarness, type CmdConfig } from './cmd.ts';
+import { CodexHarness, type CodexConfig } from './codex.ts';
+import { ClaudeCodeHarness, type ClaudeCodeConfig } from './claude-code.ts';
 import { HttpHarness } from './http.ts';
 import { MockHarness } from './mock.ts';
 
@@ -62,6 +64,29 @@ export const CMD_MANIFEST: HarnessManifest = {
   metadata: { docs: 'https://commandcode.ai/docs' },
 };
 
+export const CODEX_MANIFEST: HarnessManifest = {
+  id: 'codex', name: 'Codex', version: '1.0.0', kind: 'native',
+  capabilities: { streaming: true, resume: true, approvals: false, nativeMcp: true, reportsCost: false },
+  config: { type: 'object', properties: {
+    binary: { type: 'string', default: 'codex', title: 'Executable', description: 'Executable path, or codex.js on Windows.' },
+    model: { type: 'string', title: 'Model' },
+    effort: { type: 'string', enum: ['low', 'medium', 'high', 'xhigh'], title: 'Reasoning effort' },
+    ignoreUserConfig: { type: 'boolean', default: false, title: 'Ignore user config', description: 'Skip host config.toml while reusing login credentials.' },
+    sandbox: { type: 'string', enum: ['read-only', 'workspace-write'], default: 'read-only', title: 'Sandbox', description: 'No interactive approvals; sandbox restrictions remain enforced.' },
+  } },
+};
+
+export const CLAUDE_CODE_MANIFEST: HarnessManifest = {
+  id: 'claude-code', name: 'Claude Code', version: '1.0.0', kind: 'native',
+  capabilities: { streaming: true, resume: true, approvals: false, nativeMcp: true, reportsCost: true },
+  config: { type: 'object', properties: {
+    binary: { type: 'string', default: 'claude', title: 'Executable' },
+    model: { type: 'string', title: 'Model' },
+    maxTurns: { type: 'number', default: 20, title: 'Max turns' },
+    permissionMode: { type: 'string', enum: ['plan', 'dontAsk', 'acceptEdits'], default: 'plan', title: 'Permission mode', description: 'Unanswered permissions are denied; no chat approval transport.' },
+  } },
+};
+
 export const HTTP_MANIFEST: HarnessManifest = {
   id: 'http',
   name: 'HTTP harness',
@@ -94,6 +119,8 @@ export const MOCK_MANIFEST: HarnessManifest = {
 
 export const HARNESS_CATALOG: CatalogEntry[] = [
   { manifest: CMD_MANIFEST, create: config => new CmdHarness(config as CmdConfig) },
+  { manifest: CODEX_MANIFEST, create: config => new CodexHarness(config as CodexConfig) },
+  { manifest: CLAUDE_CODE_MANIFEST, create: config => new ClaudeCodeHarness(config as ClaudeCodeConfig) },
   {
     manifest: HTTP_MANIFEST,
     create: config =>

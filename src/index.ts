@@ -6,6 +6,8 @@ import { HarnessRegistry } from './core/registry.ts';
 import { loadHarnessManifest } from './core/loader.ts';
 import { CmdHarness, type CmdConfig } from './harnesses/cmd.ts';
 import { HttpHarness } from './harnesses/http.ts';
+import { CodexHarness, type CodexConfig } from './harnesses/codex.ts';
+import { ClaudeCodeHarness, type ClaudeCodeConfig } from './harnesses/claude-code.ts';
 import { MockHarness } from './harnesses/mock.ts';
 import { runCli } from './channels/cli.ts';
 import type { AgentRunner } from './core/runner.ts';
@@ -33,7 +35,7 @@ Usage:
   echo "your prompt" | node src/index.ts [options]
 
 Options:
-  --harness <id>        mock | cmd | http   (default: mock)
+  --harness <id>        mock | cmd | codex | claude-code | http   (default: mock)
   --workspace <dir>     working directory for the harness (default: cwd)
   --manifest <path>     load a harness from a harness.json plugin manifest
   --url <url>           base URL for --harness http
@@ -87,7 +89,7 @@ function parseArgs(argv: string[]): Args {
 }
 
 function defaultRegistry(): HarnessRegistry {
-  return new HarnessRegistry().register(new MockHarness()).register(new CmdHarness());
+  return new HarnessRegistry().register(new MockHarness()).register(new CmdHarness()).register(new CodexHarness()).register(new ClaudeCodeHarness());
 }
 
 async function readPrompt(inline: string[]): Promise<string> {
@@ -115,6 +117,8 @@ async function buildRunner(args: Args): Promise<AgentRunner> {
       return new MockHarness();
     case 'cmd':
       return new CmdHarness(config as CmdConfig);
+    case 'codex': return new CodexHarness(config as CodexConfig);
+    case 'claude-code': return new ClaudeCodeHarness(config as ClaudeCodeConfig);
     case 'http':
       if (!args.url) throw new Error('--harness http requires --url');
       return new HttpHarness({ id: 'http', url: args.url, config });

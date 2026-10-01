@@ -82,6 +82,14 @@ export class DashboardServer {
   }
 
   handler = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
+    if (req.method === 'POST' || req.method === 'PUT') {
+      const origin = req.headers.origin;
+      if ((origin && new URL(origin).host !== req.headers.host) ||
+          !req.headers['content-type']?.startsWith('application/json')) {
+        sendJson(res, 403, { errors: ['same-origin JSON request required'] });
+        return;
+      }
+    }
     const url = new URL(req.url ?? '/', 'http://localhost');
     const path = url.pathname;
 

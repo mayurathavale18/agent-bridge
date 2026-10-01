@@ -1,6 +1,6 @@
 {
   "name": "@mayurathavale18/agent-bridge",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "One event contract, many agent harnesses, many chat channels. Drive Command Code, Claude Code, Codex, Pi or your own agent from WhatsApp.",
   "type": "module",
   "license": "MIT",
@@ -35,12 +35,11 @@
   },
   "files": [
     "dist/",
-    "docs/harness-spec.md",
-    "docs/hermes-integration.md",
     "examples/",
     "README.md",
     "LICENSE",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "docs/"
   ],
   "publishConfig": {
     "access": "public"
@@ -52,7 +51,7 @@
     "demo": "node src/index.ts --harness mock \"hello from the bridge\"",
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json && node -e \"require('node:fs').cpSync('src/harnesses/hooks', 'dist/harnesses/hooks', { recursive: true })\"",
-    "test": "node --test src/core/events.test.ts src/core/manifest.test.ts src/core/async-queue.test.ts src/core/session-store.test.ts src/core/config-store.test.ts src/core/config-schema.test.ts src/harnesses/cmd.test.ts src/harnesses/cmd-hook.test.ts src/dashboard/server.test.ts src/channels/whatsapp/signature.test.ts src/channels/whatsapp/trigger.test.ts src/channels/whatsapp/renderer.test.ts src/channels/whatsapp/approval.test.ts src/channels/whatsapp/commands.test.ts src/channels/whatsapp/channel.test.ts",
+    "test": "node --test src/core/events.test.ts src/core/manifest.test.ts src/core/async-queue.test.ts src/core/session-store.test.ts src/core/config-store.test.ts src/core/config-schema.test.ts src/harnesses/cmd.test.ts src/harnesses/cmd-hook.test.ts src/dashboard/server.test.ts src/channels/whatsapp/signature.test.ts src/channels/whatsapp/trigger.test.ts src/channels/whatsapp/renderer.test.ts src/channels/whatsapp/approval.test.ts src/channels/whatsapp/commands.test.ts src/channels/whatsapp/channel.test.ts src/harnesses/cli-adapters.test.ts",
     "prepublishOnly": "npm run typecheck && npm test && npm run build"
   },
   "devDependencies": {

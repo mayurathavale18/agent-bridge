@@ -62,6 +62,22 @@ test('serves the page', async () => {
   }
 });
 
+test('rejects cross-origin and form configuration writes', async () => {
+  const dash = await startDashboard();
+  try {
+    for (const headers of [
+      { 'content-type': 'application/json', origin: 'https://other.example' },
+      { 'content-type': 'text/plain' },
+    ]) {
+      const res = await fetch(`${dash.base}/api/active`, {
+        method: 'POST', headers, body: JSON.stringify({ id: 'mock' }),
+      });
+      assert.equal(res.status, 403);
+      assert.equal(dash.config.activeHarness, undefined);
+    }
+  } finally { await dash.close(); }
+});
+
 test('state lists every catalog harness with schema-derived fields', async () => {
   const dash = await startDashboard();
   try {
@@ -71,7 +87,7 @@ test('state lists every catalog harness with schema-derived fields', async () =>
     assert.equal(body.workspace, '/tmp/workspace');
 
     const ids = body.harnesses.map((h: any) => h.manifest.id);
-    assert.deepEqual(ids, ['cmd', 'http', 'mock']);
+    assert.deepEqual(ids, ['cmd', 'codex', 'claude-code', 'http', 'mock']);
 
     const cmd = body.harnesses.find((h: any) => h.manifest.id === 'cmd');
     const keys = cmd.fields.map((f: any) => f.key);

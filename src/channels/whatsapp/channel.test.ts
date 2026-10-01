@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { WhatsAppChannel } from './channel.ts';
 import { MockHarness } from '../../harnesses/mock.ts';
+import { SessionStore } from '../../core/session-store.ts';
 import type { AgentEvent } from '../../core/events.ts';
 import type { AgentRunner, HarnessCapabilities, RunRequest } from '../../core/runner.ts';
 import type { MessagingClient, OpenWaWebhookEnvelope } from './types.ts';
@@ -57,6 +58,27 @@ function channelWith(client: FakeClient): WhatsAppChannel {
 }
 
 const selfNumber = SELF.split('@')[0] as string;
+
+test('switching harnesses isolates sessions and preserves legacy cmd history', async () => {
+  const sessions = new SessionStore();
+  sessions.remember(SELF, 'legacy-cmd');
+  for (const [id, expected] of [['codex', undefined], ['claude-code', undefined], ['cmd', 'legacy-cmd'], ['codex', 'codex-session']] as const) {
+    let resumed: string | undefined;
+    const runner: AgentRunner = {
+      id, capabilities: () => new MockHarness().capabilities(),
+      async *run(req) {
+        resumed = req.sessionId;
+        yield { type: 'done', exitCode: 0, text: 'ok', sessionId: `${id}-session` };
+      },
+    };
+    const channel = new WhatsAppChannel({ runner, sessions, client: new FakeClient(),
+      workspace: process.cwd(), log: () => {} });
+    await channel.handle(envelope(`switch-${id}`, '@me hello', false));
+    await channel.idle();
+    assert.equal(resumed, expected);
+  }
+  assert.equal(sessions.get('claude-code:' + SELF)?.sessionId, 'claude-code-session');
+});
 
 test('a self-chat mention runs the harness and streams progress into one message', async () => {
   const client = new FakeClient();

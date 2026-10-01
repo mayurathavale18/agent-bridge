@@ -1,0 +1,48 @@
+# Requires agent-dashboard-auth Secret (key: users, htpasswd format).
+# Point agent.mayurathavale.com at your server before requesting TLS.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: agent-dashboard-auth
+  namespace: agent-stack
+spec:
+  basicAuth:
+    secret: agent-dashboard-auth
+    removeHeader: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-dashboard
+  namespace: agent-stack
+spec:
+  selector: { app: agent-bridge }
+  ports:
+    - name: dashboard
+      port: 8789
+      targetPort: 8789
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: agent-dashboard
+  namespace: agent-stack
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: agent-stack-agent-dashboard-auth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: agent.mayurathavale.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: agent-dashboard
+                port: { number: 8789 }
+  tls:
+    - hosts: [agent.mayurathavale.com]
+      secretName: agent-dashboard-tls

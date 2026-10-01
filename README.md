@@ -87,6 +87,11 @@ there is no `/harness` chat command.
 
 ## Install
 
+Start with the [minimal setup](docs/quickstart.md): one authenticated CLI and Node.js.
+Codex (`--harness codex`) and Claude Code (`--harness claude-code`) support streamed
+progress and session resume. Their native permission policies apply; chat approval
+round-trips currently belong to cmd. See [contributing](CONTRIBUTING.md) for development.
+
 From npm (ships a compiled `dist/`, so any Node ≥ 22.6 works):
 
 ```bash
