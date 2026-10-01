@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.0 � 2026-10-02
+## 0.2.0 — 2026-10-02
 
 - Add a supervised dashboard Save & restart action that drains active WhatsApp work.
 - Add Codex and Claude Code JSONL adapters with native permissions, tool progress and resume.
@@ -13,14 +13,14 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project aims for
 [Semantic Versioning](https://semver.org/).
 
-## [0.1.0] — initial public release
+## [0.1.0] â€” initial public release
 
 ### Added
 
 - **The harness contract** (`docs/harness-spec.md`): `AgentRunner`, the normalized
   `AgentEvent` stream, `HarnessCapabilities`, and the `harness.json` plugin manifest whose
   `config` JSON Schema drives config UIs.
-- **HTTP harness wire** — a language-agnostic `POST {url}/runs` NDJSON contract, so an agent
+- **HTTP harness wire** â€” a language-agnostic `POST {url}/runs` NDJSON contract, so an agent
   written in any language is a first-class plugin.
 - **Adapters**: Command Code (`cmd`, verified live against headless `cmdc`, including session
   resume), generic `http`, and a deterministic `mock`.
@@ -29,7 +29,7 @@ All notable changes to this project are documented here. The format follows
 - **WhatsApp channel** (`src/channels/whatsapp/`) for OpenWA: HMAC-verified webhooks,
   idempotency-key dedupe, self-chat `@me` triggering with loop prevention (`EchoGuard`),
   per-chat single-flight queue, progress-by-message-edit, and a **chat approval transport**
-  (`approval_request` → reply `yes`/`no`/`cancel`, timeout denies).
+  (`approval_request` â†’ reply `yes`/`no`/`cancel`, timeout denies).
 - **Session routing** (`src/core/session-store.ts`): per-chat `cmd --resume` continuity with
   optional JSON persistence across restarts.
 - **Config dashboard** (`src/dashboard/`): schema-driven config UI over the harness catalog,
@@ -46,6 +46,6 @@ All notable changes to this project are documented here. The format follows
 - The adapter never spawns a shell with chat text: an untrusted prompt is never interpreted as
   a command. Command Code is driven through its JavaScript entry point on Windows because the
   installed `.cmd` shim cannot be exec'd without a shell.
-- Harness capabilities are declared and checked — `respondApproval` is only wired when
+- Harness capabilities are declared and checked â€” `respondApproval` is only wired when
   `capabilities().approvals` is true, and an approval a channel cannot answer is surfaced
   rather than silently dropped.

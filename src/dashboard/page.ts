@@ -47,8 +47,8 @@ export const DASHBOARD_HTML = `<!doctype html>
 <header>
   <h1>agent-bridge</h1>
   <div class="meta">
-    <span>harness <code id="active">…</code></span>
-    <span>workspace <code id="workspace">…</code></span>
+    <span>harness <code id="active">â€¦</code></span>
+    <span>workspace <code id="workspace">â€¦</code></span>
     <span id="extra"></span>
   </div>
 </header>
@@ -112,9 +112,9 @@ export const DASHBOARD_HTML = `<!doctype html>
     if (caps.approvals) names.push('approvals');
     if (caps.nativeMcp) names.push('native mcp');
     if (caps.reportsCost) names.push('cost reporting');
-    var line = 'v' + h.manifest.version + ' · ' + h.manifest.kind;
-    if (names.length) line += ' · ' + names.join(', ');
-    if (h.manifest.metadata && h.manifest.metadata.note) line += ' — ' + h.manifest.metadata.note;
+    var line = 'v' + h.manifest.version + ' Â· ' + h.manifest.kind;
+    if (names.length) line += ' Â· ' + names.join(', ');
+    if (h.manifest.metadata && h.manifest.metadata.note) line += ' â€” ' + h.manifest.metadata.note;
     return line;
   }
 
@@ -217,7 +217,7 @@ export const DASHBOARD_HTML = `<!doctype html>
   el('save').onclick = function () {
     var h = current();
     if (!h) return;
-    status('saving…');
+    status('savingâ€¦');
     send('PUT', '/api/harnesses/' + encodeURIComponent(h.manifest.id) + '/config', collect()).then(function (res) {
       if (res.errors && res.errors.length) { status(res.errors.join('; '), 'err'); return; }
       status('saved', 'ok');
@@ -228,7 +228,7 @@ export const DASHBOARD_HTML = `<!doctype html>
   el('restart').onclick = function () {
     var h = current(), previous = state.instanceId;
     el('restart').disabled = true;
-    status('saving and restarting � waiting for active work�');
+    status('saving and restarting — waiting for active work…');
     send('PUT', '/api/harnesses/' + encodeURIComponent(h.manifest.id) + '/config', collect()).then(function (res) {
       if (res.errors) throw new Error(res.errors.join('; '));
       return send('POST', '/api/restart', {});
@@ -238,7 +238,7 @@ export const DASHBOARD_HTML = `<!doctype html>
       function check() {
         get('/api/state').then(function (data) {
           if (data.instanceId === previous) throw new Error('waiting');
-          state = data; render(); status('restarted � saved settings applied', 'ok');
+          state = data; render(); status('restarted — saved settings applied', 'ok');
         }).catch(function () {
           if (++attempts < 40) setTimeout(check, 3000);
           else { status('Still waiting. Refresh after active work finishes.', 'err'); el('restart').disabled = false; }
