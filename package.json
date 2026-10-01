@@ -1,6 +1,6 @@
 {
   "name": "@mayurathavale18/agent-bridge",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "One event contract, many agent harnesses, many chat channels. Drive Command Code, Claude Code, Codex, Pi or your own agent from WhatsApp.",
   "type": "module",
   "license": "MIT",

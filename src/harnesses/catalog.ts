@@ -78,12 +78,12 @@ export const CODEX_MANIFEST: HarnessManifest = {
 
 export const CLAUDE_CODE_MANIFEST: HarnessManifest = {
   id: 'claude-code', name: 'Claude Code', version: '1.0.0', kind: 'native',
-  capabilities: { streaming: true, resume: true, approvals: false, nativeMcp: true, reportsCost: true },
+  capabilities: { streaming: true, resume: true, approvals: true, nativeMcp: true, reportsCost: true },
   config: { type: 'object', properties: {
     binary: { type: 'string', default: 'claude', title: 'Executable' },
     model: { type: 'string', title: 'Model' },
     maxTurns: { type: 'number', default: 20, title: 'Max turns' },
-    permissionMode: { type: 'string', enum: ['plan', 'dontAsk', 'acceptEdits'], default: 'plan', title: 'Permission mode', description: 'Unanswered permissions are denied; no chat approval transport.' },
+    permissionMode: { type: 'string', enum: ['plan', 'acceptEdits', 'manual', 'dontAsk'], default: 'plan', title: 'Permission mode', description: 'plan: read only; acceptEdits: allow edits; manual: ask through WhatsApp; dontAsk: deny prompts.' },
   } },
 };
 
@@ -144,6 +144,14 @@ export function catalogEntry(id: string): CatalogEntry {
 
 export function buildRunner(id: string, config: Record<string, unknown>): AgentRunner {
   return catalogEntry(id).create(config);
+}
+
+export function permissionSettings(id: string, mode: string): Record<string, unknown> {
+  if (!['plan', 'write', 'ask'].includes(mode)) throw new Error('Use /mode plan, /mode write or /mode ask.');
+  if (id === 'claude-code') return { permissionMode: mode === 'plan' ? 'plan' : mode === 'write' ? 'acceptEdits' : 'manual' };
+  if (id === 'cmd') return { permissionMode: mode === 'plan' ? 'plan' : mode === 'write' ? 'accept-edits' : 'yolo', approvals: mode === 'ask' };
+  if (id === 'codex' && mode !== 'ask') return { sandbox: mode === 'plan' ? 'read-only' : 'workspace-write' };
+  throw new Error(`Mode ${mode} is unavailable for ${id}; Codex chat approvals are not implemented.`);
 }
 
 export interface ResolvedConfig {

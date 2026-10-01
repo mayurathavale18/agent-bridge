@@ -48,6 +48,7 @@ export interface AgentRunner {
   capabilities(): HarnessCapabilities;
   /** Native catalog, when available; absence means model discovery is unsupported. */
   listModels?(): Promise<string[]>;
+  resolvedModel?(): string | undefined;
 
   /**
    * Execute one run, yielding normalized events. Must yield exactly one terminal

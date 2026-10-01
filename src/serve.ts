@@ -7,7 +7,7 @@ import { SessionStore } from './core/session-store.ts';
 import { WhatsAppChannel } from './channels/whatsapp/channel.ts';
 import { OpenWaClient } from './channels/whatsapp/client.ts';
 import { DashboardServer } from './dashboard/server.ts';
-import { buildRunner, catalogEntry, resolveHarnessConfig, HARNESS_CATALOG } from './harnesses/catalog.ts';
+import { buildRunner, catalogEntry, resolveHarnessConfig, HARNESS_CATALOG, permissionSettings } from './harnesses/catalog.ts';
 
 const env = (name: string, fallback?: string): string | undefined => {
   const value = process.env[name];
@@ -57,10 +57,17 @@ async function main(): Promise<void> {
     control: {
       harnesses: HARNESS_CATALOG.map(entry => entry.manifest.id),
       model: () => typeof runningValues.model === 'string' ? runningValues.model : undefined,
-      select: async (id, model) => {
+      mode: () => `${runningValues.permissionMode ?? runningValues.sandbox ?? 'harness default'}${runningValues.approvals ? ' + chat approvals' : ''}`,
+      select: async (id, model, mode) => {
         if (env('AGENT_BRIDGE_HARNESS') && id !== activeId) throw new Error('Harness is pinned by AGENT_BRIDGE_HARNESS.');
         const entry = catalogEntry(id);
         const saved = config.harnessConfig(id);
+        if (mode !== undefined) {
+          const patch = permissionSettings(id, mode);
+          const pinned = resolveHarnessConfig(entry, saved).pinned;
+          if (Object.keys(patch).some(key => pinned.includes(key))) throw new Error('Permission mode is pinned by an environment variable.');
+          Object.assign(saved, patch);
+        }
         if (model !== undefined) {
           if (!(entry.manifest.config?.properties as Record<string, unknown> | undefined)?.model) throw new Error('This harness has no model setting.');
           if (resolveHarnessConfig(entry, saved).pinned.includes('model')) throw new Error('Model is pinned by an environment variable.');

@@ -7,7 +7,8 @@ import { tryParseJson } from '../core/ndjson.ts';
 /** Shared lifecycle for JSONL CLIs. Prompts never pass through a shell. */
 export async function* runProcess(
   binary: string, args: string[], req: RunRequest,
-  map: (frame: any) => AgentEvent[], signal?: AbortSignal,
+  map: (frame: any, send: (frame: unknown) => void) => AgentEvent[], signal?: AbortSignal,
+  input?: unknown[],
 ): AsyncIterable<AgentEvent> {
   let text = '', sessionId = req.sessionId, stderr = '', failure: Error | undefined, reportedError = false;
   let terminal: Extract<AgentEvent, { type: 'done' }> | undefined;
@@ -17,21 +18,24 @@ export async function* runProcess(
   }
   const script = /\.(mjs|cjs|js)$/i.test(binary);
   const child = spawn(script ? process.execPath : binary, script ? [binary, ...args] : args, {
-    cwd: req.workspace, env: { ...process.env, ...req.env }, stdio: ['ignore', 'pipe', 'pipe'],
+    cwd: req.workspace, env: { ...process.env, ...req.env }, stdio: [input ? 'pipe' : 'ignore', 'pipe', 'pipe'],
   });
   child.once('error', err => { failure = err; });
+  const send = (frame: unknown) => { if (child.stdin && !child.stdin.destroyed) child.stdin.write(`${JSON.stringify(frame)}\n`); };
+  child.stdin?.on('error', err => { failure = err; });
+  for (const frame of input ?? []) send(frame);
   const closed = new Promise<number>(resolve => child.once('close', (code, sig) => resolve(code ?? (sig ? 130 : 1))));
   const abort = () => { child.kill('SIGTERM'); };
   signal?.addEventListener('abort', abort, { once: true });
   if (signal?.aborted) abort();
-  child.stderr.setEncoding('utf8');
-  child.stderr.on('data', (chunk: string) => { stderr = (stderr + chunk).slice(-8192); });
+  child.stderr!.setEncoding('utf8');
+  child.stderr!.on('data', (chunk: string) => { stderr = (stderr + chunk).slice(-8192); });
   try {
-    for await (const line of createInterface({ input: child.stdout })) {
+    for await (const line of createInterface({ input: child.stdout! })) {
       const frame = tryParseJson(line);
       if (!frame || typeof frame !== 'object') continue;
-      for (const event of map(frame)) {
-        if (event.type === 'done') { terminal = event; sessionId = event.sessionId ?? sessionId; }
+      for (const event of map(frame, send)) {
+        if (event.type === 'done') { terminal = event; sessionId = event.sessionId ?? sessionId; child.stdin?.end(); }
         else {
           if (event.type === 'text') text += event.text;
           if (event.type === 'error') reportedError = true;

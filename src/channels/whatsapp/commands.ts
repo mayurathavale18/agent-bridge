@@ -1,4 +1,4 @@
-export type ChatCommand = 'new' | 'session' | { name: 'help' | 'threads' | 'new' | 'use' | 'models' | 'model' | 'harnesses' | 'harness' | 'send' | 'unknown'; argument: string };
+export type ChatCommand = 'new' | 'session' | { name: 'help' | 'threads' | 'new' | 'use' | 'models' | 'model' | 'mode' | 'harnesses' | 'harness' | 'send' | 'unknown'; argument: string };
 
 /**
  * Recognize a chat control word.
@@ -12,7 +12,7 @@ export function parseChatCommand(prompt: string): ChatCommand | null {
   if (explicit) {
     const name = explicit[1]!.toLowerCase();
     const argument = explicit[2]?.trim() ?? '';
-    if (name === 'help' || name === 'threads' || name === 'use' || name === 'models' || name === 'model' || name === 'harnesses' || name === 'harness' || name === 'send' || (name === 'new' && argument)) {
+    if (name === 'help' || name === 'threads' || name === 'use' || name === 'models' || name === 'model' || name === 'mode' || name === 'harnesses' || name === 'harness' || name === 'send' || (name === 'new' && argument)) {
       return { name, argument };
     }
     if (!['new', 'reset', 'session', 'status'].includes(name) || argument) return { name: 'unknown', argument: prompt.trim() };
@@ -30,4 +30,4 @@ export function parseChatCommand(prompt: string): ChatCommand | null {
 }
 
 export const COMMAND_HELP =
-  'commands: /new starts fresh, /new <name> creates a thread, /threads lists threads, /use <name> resumes one, /session shows the session, /models lists models, /model <id|default> switches model, /harnesses lists adapters, /harness <id> switches adapter, /send <path> sends a workspace file, /help shows commands';
+  'commands: /new starts fresh, /new <name> creates a thread, /threads lists threads, /use <name> resumes one, /session shows the session, /models lists models, /model <id|default> switches model, /harnesses lists adapters, /harness <id> switches adapter, /mode plan|write|ask changes permissions, /send <path> sends a workspace file, /help shows commands';

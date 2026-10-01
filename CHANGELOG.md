@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1 — 2026-10-02
+
+- Add `/mode plan|write|ask` using each harness's native permission settings.
+- Route Claude Code manual permissions through WhatsApp yes/no replies over the native stdio control protocol.
+- Show the resolved Claude model ID alongside the selected alias with `/model`.
+- Preserve threads and environment pins when changing permission mode; reject unsupported Codex ask mode.
+
 ## 0.3.0 — 2026-10-02
 
 - Add direct WhatsApp model catalogs and verified harness/model switching.

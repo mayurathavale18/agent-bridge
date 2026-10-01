@@ -17,7 +17,8 @@ export interface WhatsAppChannelOptions {
   control?: {
     harnesses: string[];
     model: () => string | undefined;
-    select: (harness: string, model?: string) => Promise<AgentRunner>;
+    mode?: () => string;
+    select: (harness: string, model?: string, mode?: string) => Promise<AgentRunner>;
   };
   client: MessagingClient;
   /** Working directory handed to the harness for every run. */
@@ -161,7 +162,11 @@ export class WhatsAppChannel {
     if (typeof command === 'object') {
       const base = this.#sessionBase(chatId);
       try {
-        if (command.name === 'send') {
+        if (command.name === 'mode') {
+          if (!this.#control?.mode) throw new Error('Permission mode control is unavailable.');
+          if (command.argument) this.#runner = await this.#control.select(this.#runner.id, undefined, command.argument.toLowerCase());
+          await this.#notice(sessionId, chatId, `permission mode: ${this.#control.mode()}\nUse /mode plan, /mode write or /mode ask. Write accepts edits; operations needing permission remain denied. Ask sends approval prompts through chat where supported.`);
+        } else if (command.name === 'send') {
           if (!command.argument) throw new Error('Use /send <workspace file path>.');
           await this.#sendFile(sessionId, chatId, command.argument);
         } else if (command.name === 'models') {
@@ -170,7 +175,7 @@ export class WhatsAppChannel {
         } else if (command.name === 'model') {
           if (!this.#control) throw new Error('Model switching is not configured.');
           if (!command.argument) {
-            await this.#notice(sessionId, chatId, `model: ${this.#control.model() ?? 'CLI default'}`);
+            await this.#notice(sessionId, chatId, `model selection: ${this.#control.model() ?? 'CLI default'}\nresolved model: ${this.#runner.resolvedModel?.() ?? 'not yet reported in this process'}`);
           } else {
             if (command.argument !== 'default' && !(await this.#models()).includes(command.argument)) throw new Error('Unknown model; use /models to list this harness catalog.');
             this.#runner = await this.#control.select(this.#runner.id, command.argument);

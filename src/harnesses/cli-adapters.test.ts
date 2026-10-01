@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CodexHarness, codexArgs } from './codex.ts';
 import { ClaudeCodeHarness, claudeArgs } from './claude-code.ts';
+import { permissionSettings } from './catalog.ts';
 
 async function collect(stream: AsyncIterable<AgentEvent>): Promise<AgentEvent[]> {
   const events: AgentEvent[] = [];
@@ -26,6 +27,44 @@ test('CLI flags preserve prompts and enforce noninteractive permissions on resum
   assert.ok(!codexArgs({ ignoreUserConfig: 'false' }, req).includes('--ignore-user-config'));
   assert.throws(() => codexArgs({ sandbox: 'danger-full-access' as any }, req));
   assert.throws(() => claudeArgs({ permissionMode: 'bypassPermissions' as any }, req));
+});
+
+test('permission modes keep plan/write restrictions and expose supported approvals', () => {
+  assert.deepEqual(permissionSettings('claude-code', 'plan'), { permissionMode: 'plan' });
+  assert.deepEqual(permissionSettings('claude-code', 'write'), { permissionMode: 'acceptEdits' });
+  assert.deepEqual(permissionSettings('claude-code', 'ask'), { permissionMode: 'manual' });
+  assert.deepEqual(permissionSettings('codex', 'write'), { sandbox: 'workspace-write' });
+  assert.throws(() => permissionSettings('codex', 'ask'));
+  assert.throws(() => permissionSettings('claude-code', 'bypass'));
+  assert.deepEqual(permissionSettings('cmd', 'ask'), { permissionMode: 'yolo', approvals: true });
+});
+
+test('Claude manual permissions answer over stdio and retain the resolved model', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'bridge-claude-approval-'));
+  try {
+    const binary = join(dir, 'approval.mjs');
+    await writeFile(binary, `
+      import {createInterface} from 'node:readline';
+      for await (const line of createInterface({input:process.stdin})) {
+        const frame=JSON.parse(line);
+        if(frame.type==='user') console.log(JSON.stringify({type:'control_request',request_id:'permission-1',request:{subtype:'can_use_tool',tool_name:'Write',input:{file_path:'test.txt',content:'approved'}}}));
+        if(frame.type==='control_response') {
+          console.log(JSON.stringify({type:'assistant',message:{model:'claude-opus-test',content:[]}}));
+          console.log(JSON.stringify({type:'result',result:frame.response.response.behavior,session_id:'test-session'}));
+        }
+      }
+    `);
+    for (const decision of ['approve', 'deny'] as const) {
+      const runner = new ClaudeCodeHarness({ binary, permissionMode: 'manual' });
+      const events: AgentEvent[] = [];
+      for await (const event of runner.run({ workspace: dir, prompt: 'Write a file' })) {
+        events.push(event);
+        if (event.type === 'approval_request') await runner.respondApproval(event.id, decision);
+      }
+      assert.equal((events.at(-1) as any).text, decision === 'approve' ? 'allow' : 'deny');
+      assert.equal(runner.resolvedModel(), 'claude-opus-test');
+    }
+  } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
 test('both JSONL adapters normalize text, tools, usage and exactly one terminal event', async () => {

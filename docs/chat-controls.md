@@ -9,6 +9,11 @@ the bridge, so listing models does not spend a model turn.
 | `/models` | Read the native CLI catalog; account access can differ |
 | `/model <id>` | Verify the model with a short request, then save and apply |
 | `/model default` | Clear the override and verify the CLI default |
+| `/model` | Show selected alias and the model ID reported by the running CLI |
+| `/mode` | Show permission mode |
+| `/mode plan` | Read-only planning |
+| `/mode write` | Accept edits; keep other permission restrictions |
+| `/mode ask` | Send native permission requests through WhatsApp (Claude/Command Code) |
 | `/harnesses` | List installed bridge adapters |
 | `/harness <id>` | Verify and select an adapter |
 | `/new <name>` | Create and select a named thread |
@@ -23,6 +28,12 @@ are separate for each harness. Environment-pinned settings cannot be overridden 
 chat commands. Switching adapters verifies the saved configuration before activation;
 missing login, quota and unsupported models leave the previous adapter running.
 The dashboard's existing Save & restart action applies other configuration changes.
+
+Claude maps plan/write/ask to `plan`/`acceptEdits`/`manual`; its dashboard permission
+dropdown offers the same native settings. Command Code ask mode gates tools with
+the existing approval hook. Codex supports plan/write through its read-only/workspace-write
+sandbox; ask mode is rejected because a Codex chat approval transport is not implemented.
+Mode changes apply to the next turn, keep the selected thread, and respect environment pins.
 
 Command Code uses `cmdc --list-models`; Codex reads its native `models_cache.json`;
 Claude Code reads the aliases advertised by its installed CLI help. These catalogs
