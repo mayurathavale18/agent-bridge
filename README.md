@@ -11,8 +11,8 @@ export import instructions and clarification transport limits.
 
 One event contract. Many agent harnesses. Many chat channels.
 
-A harness-agnostic bridge for driving coding agents (Command Code, Claude Code, Codex, Pi,
-Hermes, or your own) from any chat medium — starting with WhatsApp. The bridge does not
+A harness-agnostic bridge for driving coding agents (Command Code, Claude Code, Codex,
+or your own adapter) from chat — starting with WhatsApp. The bridge does not
 implement an agent loop; it normalizes whatever a harness emits into one event language and
 lets channels render it.
 
@@ -66,6 +66,8 @@ and a shell request that paused for approval and respected a denial.
 | `AgentRunner` interface + capabilities | done |
 | `harness.json` manifest + validation | done |
 | `cmd` adapter (Command Code NDJSON) | done, verified live |
+| `claude-code` adapter | done — streaming, resume and chat permissions |
+| `codex` adapter | done — streaming and resume; chat ask mode unsupported |
 | `http` adapter (generic wire) | done |
 | `mock` adapter (deterministic, no cost) | done |
 | CLI channel | done |
@@ -85,24 +87,41 @@ receives new messages; each harness retains its own history. Use the [Contabo se
 ![Technical Hermes model selection using @me /model in WhatsApp self-chat](docs/assets/model-switching.svg)
 
 With Hermes selected, send `@me /model` to see available models, then
-`@me /model <model-id>` with an actual provider model ID. Availability and cost depend on your provider. For the cmd bridge, change its model in the
-dashboard or `AGENT_BRIDGE_CMD__MODEL`, then restart. Harness switching is server-side;
-there is no `/harness` chat command.
+`@me /model <model-id>` with an actual provider model ID. Availability and cost depend on your provider.
+With Agent Bridge selected, use `@me /harnesses`, `@me /harness <id>`,
+`@me /models` and `@me /model <id|default>` directly in the self-chat.
+Each harness keeps separate histories. The external Hermes integration still uses the
+server-side webhook selector. See [chat controls](docs/chat-controls.md).
 
 ## Install
 
 Start with the [minimal setup](docs/quickstart.md): one authenticated CLI and Node.js.
 Codex (`--harness codex`) and Claude Code (`--harness claude-code`) support streamed
 progress and session resume. Their native permission policies apply; chat approval
-round-trips currently belong to cmd. See [contributing](CONTRIBUTING.md) for development.
+round-trips are supported by cmd and Claude Code, while Codex ask mode is unsupported.
+See [contributing](CONTRIBUTING.md) for development.
 
 From npm (ships a compiled `dist/`, so any Node ≥ 22.6 works):
 
 ```bash
 npm install -g @mayurathavale18/agent-bridge
 agent-bridge --list
-agent-bridge-serve          # the WhatsApp channel server
+agent-bridge --harness mock "hello from the bridge"
 ```
+
+The mock emits deterministic events without a model, credentials or WhatsApp account.
+For a real run, install and sign in to the selected native CLI first, then run:
+
+```bash
+agent-bridge --harness codex --workspace . "Summarize this repository"
+# or: agent-bridge --harness claude-code --workspace . "Summarize this repository"
+```
+
+**Zero external dependencies means zero runtime npm dependencies in Agent Bridge.**
+Node.js is required; real harnesses need their own CLI and authentication, and WhatsApp
+needs a separately configured OpenWA service. Development uses TypeScript and Node types.
+After configuring the [WhatsApp environment](#drive-it-from-whatsapp),
+`agent-bridge-serve` starts the channel server and dashboard.
 
 Or straight from source — no build step, Node ≥ 22.6 strips the types:
 
@@ -291,6 +310,31 @@ examples/                harness.cmd.json · harness.http.json
 ```
 
 ## Roadmap
+
+These are planned extensions, not currently shipped adapters:
+
+- **More harnesses** — add adapters for additional coding CLIs, with explicit support
+  boundaries for models, sessions, permissions and artifacts. Candidates include
+  Gemini CLI, OpenCode, Aider and Pi.
+- **More communication channels** — reuse the event contract and preserve per-chat
+  sessions, approval handling and duplicate suppression across these targets:
+
+| Planned channel | Integration path |
+| --- | --- |
+| Slack | [Events API](https://api.slack.com/apis/events-api) for requests; Web API for replies and interactions |
+| Microsoft Teams | [Bot conversations](https://learn.microsoft.com/en-us/microsoftteams/platform/bots/how-to/conversations/send-proactive-messages) for messages and replies |
+| Telegram | [Bot API](https://core.telegram.org/bots/api), with webhooks or long polling |
+| Discord | [Bot interactions](https://discord.com/developers/docs/interactions/receiving-and-responding) and Gateway message events |
+| Google Chat | [Chat app interaction events](https://developers.google.com/workspace/chat/receive-respond-interactions) and Chat API replies |
+| Mattermost | [Webhooks, slash commands and bot APIs](https://developers.mattermost.com/integrate/) |
+| Matrix / Element | [Matrix Client-Server API](https://spec.matrix.org/latest/client-server-api/) for room events and replies |
+| Rocket.Chat | [REST and Realtime APIs](https://developer.rocket.chat/apidocs) |
+
+Incoming webhooks alone usually cover posting messages, not receiving user requests.
+Each channel needs an inbound event/bot path and an outbound reply path; platform
+permissions and administrator configuration still apply.
+
+### Hermes integration background
 
 1. **Hermes channel plugin** — recon done: see [`docs/hermes-integration.md`](docs/hermes-integration.md).
    Hermes already ships WhatsApp (Baileys + Cloud API), so this is not a gap in the usual sense —
